@@ -4,10 +4,13 @@
 BeanFactory，生产 bean 的工厂，它负责生产和管理各个 bean 实例。
 
 ApplicationContext 其实就是一个 BeanFactory, 只不过他更加高级，实现了更多的接口
+
+
 1. ApplicationContext 继承了 ListableBeanFactory，这个 Listable 的意思就是，通过这个接口，我们可以获取多个 Bean，大家看源码会发现，最顶层 BeanFactory 接口的方法都是获取单个 Bean 的。
 2. ApplicationContext 继承了 HierarchicalBeanFactory，Hierarchical 单词本身已经能说明问题了，也就是说我们可以在应用中起多个 BeanFactory，然后可以将各个 BeanFactory 设置为父子关系
 3. AutowireCapableBeanFactory 这个名字中的 Autowire 大家都非常熟悉，它就是用来自动装配 Bean 用的，但是仔细看上图，ApplicationContext 并没有继承它，不过不用担心，不使用继承，不代表不可以使用组合，如果你看到 ApplicationContext 接口定义中的最后一个方法 getAutowireCapableBeanFactory() 就知道了
 4. AutowireCapableBeanFactory 这个名字中的 Autowire 大家都非常熟悉，它就是用来自动装配 Bean 用的，但是仔细看上图，ApplicationContext 并没有继承它，不过不用担心，不使用继承，不代表不可以使用组合，如果你看到 ApplicationContext 接口定义中的最后一个方法 getAutowireCapableBeanFactory() 就知道了
+
 
 ### ioc启动过程分析
 
@@ -78,7 +81,7 @@ public void refresh() throws BeansException, IllegalStateException {
          // 两个方法分别在 Bean 初始化之前和初始化之后得到执行。注意，到这里 Bean 还没初始化
          registerBeanPostProcessors(beanFactory);
 
-         // 初始化当前 ApplicationContext 的 MessageSource，国际化这里就不展开说了，不然没完没了了
+         // 初始化当前 ApplicationContext 的 MessageSource，主要用来实现国际化消息
          initMessageSource();
 
          // 初始化当前 ApplicationContext 的事件广播器，这里也不展开了
@@ -95,7 +98,7 @@ public void refresh() throws BeansException, IllegalStateException {
          // 初始化所有的 singleton beans
          //（lazy-init 的除外）
          finishBeanFactoryInitialization(beanFactory);
-
+  
          // 最后，广播事件，ApplicationContext 初始化完成
          finishRefresh();
       }
@@ -171,3 +174,68 @@ protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
    return beanFactory;
 }
 ```
+
+// AbstractRefreshableApplicationContext.java
+AbstractRefreshableApplicationContext中实现了refreshBeanFactory:
+``` 
+@Override
+protected final void refreshBeanFactory() throws BeansException {
+   // 如果 ApplicationContext 中已经加载过 BeanFactory 了，销毁所有 Bean，关闭 BeanFactory
+   // 注意，应用中 BeanFactory 本来就是可以多个的，这里可不是说应用全局是否有 BeanFactory，而是当前
+   // ApplicationContext 是否有 BeanFactory
+   if (hasBeanFactory()) {
+      destroyBeans();
+      closeBeanFactory();
+   }
+   try {
+      // 初始化一个 DefaultListableBeanFactory， 下文讲解为何要使用这个
+      DefaultListableBeanFactory beanFactory = createBeanFactory();
+      // 用于 BeanFactory 的序列化，大部分时候用不到
+      beanFactory.setSerializationId(getId());
+
+      // 设置 BeanFactory 的两个配置属性：是否允许 Bean 覆盖、是否允许循环引用
+      customizeBeanFactory(beanFactory);
+
+      // 加载 Bean 到 BeanFactory 中
+      loadBeanDefinitions(beanFactory);
+      synchronized (this.beanFactoryMonitor) {
+         this.beanFactory = beanFactory;
+      }
+   }
+   catch (IOException ex) {
+      throw new ApplicationContextException("I/O error parsing bean definition source for " + getDisplayName(), ex);
+   }
+}
+```
+
+这里说明了ApplicationContext不应该被理解为BeanFactory了
+>ApplicationContext 继承自 BeanFactory，但是它不应该被理解为 BeanFactory 的实现类，而是说其内部持有一个实例化的 BeanFactory（DefaultListableBeanFactory）。以后所有的 BeanFactory 相关的操作其实是委托给这个实例来处理的。
+
+那么为什么要使用DefaultListableBeanFactory ， 从最开始的图可以看到：
+![](https://javadoop.com/blogimages/spring-context/3.png)
+
+ ConfigurableListableBeanFactory 只有一个实现类 DefaultListableBeanFactory，而且实现类 DefaultListableBeanFactory 还通过实现右边的 AbstractAutowireCapableBeanFactory 通吃了右路。所以DefaultListableBeanFactory算是功能最全的BeanFactory了
+ 、
+ 
+ 如果我们需要动态的往容器里面注册新的bean， 就会使用到这个类。如何在运行的时候获得DefaultListableBeanFactory 的实例呢。之前我们说过 ApplicationContext 接口能获取到 AutowireCapableBeanFactory，然后它向下转型就能得到 DefaultListableBeanFactory 了。
+ 
+ 例如,在SpringBoot中动态的注册一个bean到容器中：
+ ``` 
+ ApplicationContext ctx =  (ApplicationContext) SpringApplication.run(App.class, args);
+ // 获取如何在运行的时候获得DefaultListableBeanFactory
+ DefaultListableBeanFactory defaultListableBeanFactory = (DefaultListableBeanFactory) ctx.getAutowireCapableBeanFactory();  
+ //创建bean信息.  
+ BeanDefinitionBuilder beanDefinitionBuilder = BeanDefinitionBuilder.genericBeanDefinition(TestService.class);    
+ eanDefinitionBuilder.addPropertyValue("name","张三");  
+ //动态注册bean. 
+ defaultListableBeanFactory.registerBeanDefinition("testService", beanDefinitionBuilder.getBeanDefinition());  
+ //获取动态注册的bean.  
+ TestService testService =ctx.getBean(TestService.class);、testService.print();
+ ```
+
+在分析后面的方法前，先了解一下bean的定义[BeanDefinition]()
+
+### 参考资料
+- [spring ioc 源码分析](https://javadoop.com/post/spring-ioc#%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90)
+- [深入分析java web技术内幕 - 13章]
+- [spring 技术内幕]
