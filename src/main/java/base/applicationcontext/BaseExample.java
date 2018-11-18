@@ -1,7 +1,7 @@
 /**
  * BrandBigData.com Inc. Copyright (c) 2018 All Rights Reserved.
  */
-package base;
+package base.applicationcontext;
 
 import bean.IMessageService;
 import bean.impl.MessageServiceImpl;
