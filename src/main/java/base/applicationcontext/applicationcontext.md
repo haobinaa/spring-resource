@@ -233,7 +233,57 @@ protected final void refreshBeanFactory() throws BeansException {
  TestService testService =ctx.getBean(TestService.class);、testService.print();
  ```
 
-在分析后面的方法前，先了解一下bean的定义[BeanDefinition]()
+在分析后面的方法前，先了解一下bean的定义[BeanDefinition](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/applicationcontext/bean.md)
+
+###### customizeBeanFactory
+customizeBeanFactory(beanFactory) 比较简单，就是配置是否允许 BeanDefinition 覆盖、是否允许循环引用。
+``` 
+protected void customizeBeanFactory(DefaultListableBeanFactory beanFactory) {
+   if (this.allowBeanDefinitionOverriding != null) {
+      // 是否允许 Bean 定义覆盖
+      beanFactory.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
+   }
+   if (this.allowCircularReferences != null) {
+      // 是否允许 Bean 间的循环依赖
+      beanFactory.setAllowCircularReferences(this.allowCircularReferences);
+   }
+}
+```
+
+BeanDefinition 的覆盖问题可能会有开发者碰到这个坑，就是在配置文件中定义 bean 时使用了相同的 id 或 name，默认情况下，allowBeanDefinitionOverriding 属性为 null，如果在同一配置文件中重复了，会抛错，但是如果不是同一配置文件中，会发生覆盖。
+
+循环引用也很好理解：A 依赖 B，而 B 依赖 A。或 A 依赖 B，B 依赖 C，而 C 依赖 A。
+
+默认情况下，Spring 允许循环依赖，当然如果你在 A 的构造方法中依赖 B，在 B 的构造方法中依赖 A 是不行的。
+
+###### loadBeanDefinitions
+接下来是最重要的 loadBeanDefinitions(beanFactory) 方法了，这个方法将根据配置，加载各个 Bean，然后放到 BeanFactory 中。
+
+读取配置的操作在 XmlBeanDefinitionReader 中，其负责加载配置、解析。
+
+// AbstractXmlApplicationContext.java 80
+``` 
+/** 我们可以看到，此方法将通过一个 XmlBeanDefinitionReader 实例来加载各个 Bean。*/
+@Override
+protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
+   // 给这个 BeanFactory 实例化一个 XmlBeanDefinitionReader
+   XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
+
+   // Configure the bean definition reader with this context's
+   // resource loading environment.
+   beanDefinitionReader.setEnvironment(this.getEnvironment());
+   beanDefinitionReader.setResourceLoader(this);
+   beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
+
+   // 初始化 BeanDefinitionReader，其实这个是提供给子类覆写的，
+   // 我看了一下，没有类覆写这个方法，我们姑且当做不重要吧
+   initBeanDefinitionReader(beanDefinitionReader);
+   // 加载xml的配置
+   loadBeanDefinitions(beanDefinitionReader);
+}
+```
+接下来用刚刚初始化的 Reader 开始来加载 xml 配置, 这一块就是属于比较偏细节的实现了，可以快速略过, 我把他单独列出来了： [loadBeanDefinitions]
+
 
 ### 参考资料
 - [spring ioc 源码分析](https://javadoop.com/post/spring-ioc#%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90)

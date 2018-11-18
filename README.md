@@ -5,4 +5,5 @@ spring resouce code learn
 
 ### 目录
 - [BeanPostProcessor](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/beanprocessor/beanpostprocessor.md)
+- [bean的定义-BeanDefinition ](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/applicationcontext/bean.md)
 - [IOC启动过程分析](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/applicationcontext/applicationcontext.md)
