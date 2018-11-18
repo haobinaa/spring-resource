@@ -19,6 +19,8 @@ public class BaseExample {
     public static void main(String[] args) {
         ApplicationContext context = new ClassPathXmlApplicationContext("classpath:base.xml");
         System.out.println("启动 context");
+        System.out.println(context.getId());
+        System.out.println(context.getApplicationName());
         IMessageService messageService = context.getBean(MessageServiceImpl.class);
         System.out.println(messageService.getMessage());
     }
