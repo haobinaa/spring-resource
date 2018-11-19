@@ -282,7 +282,11 @@ protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throw
    loadBeanDefinitions(beanDefinitionReader);
 }
 ```
-接下来用刚刚初始化的 Reader 开始来加载 xml 配置, 这一块就是属于比较偏细节的实现了，可以快速略过, 我把他单独列出来了： [loadBeanDefinitions]
+接下来用刚刚初始化的 Reader 开始来加载 xml 配置, 这一块就是属于比较偏细节的实现了，解析成BeanDefinition, 注册各个BeanDefinition到注册中心，我把他单独列出来了： 
+
+[loadBeanDefinitions - 具体实现过程](https://github
+.com/haobinaa/spring-resource/blob/master/src/main/java/base/applicationcontext
+/loadBeanDefinitions.md)
 
 
 ### 参考资料
