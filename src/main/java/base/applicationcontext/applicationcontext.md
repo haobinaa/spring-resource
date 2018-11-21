@@ -284,9 +284,7 @@ protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throw
 ```
 接下来用刚刚初始化的 Reader 开始来加载 xml 配置, 这一块就是属于比较偏细节的实现了，解析成BeanDefinition, 注册各个BeanDefinition到注册中心，我把他单独列出来了： 
 
-[loadBeanDefinitions - 具体实现过程](https://github
-.com/haobinaa/spring-resource/blob/master/src/main/java/base/applicationcontext
-/loadBeanDefinitions.md)
+[loadBeanDefinitions - 具体实现过程](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/applicationcontext/loadBeanDefinitions.md)
 
 当将xml中的bean注册好之后obtainFreshBeanFactory()的流程也就走完了
 
@@ -499,9 +497,7 @@ public void preInstantiateSingletons() throws BeansException {
 
 接下来，我们就进入到 getBean(beanName) 方法了，这个方法我们经常用来从 BeanFactory 中获取一个 Bean，而初始化的过程也封装到了这个方法里。
 
-##### getBean
-
-getBean之前先阅读[FactoryBean相关]()
+[getBean详细过程]()
 ### 参考资料
 - [spring ioc 源码分析](https://javadoop.com/post/spring-ioc#%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90)
 - [深入分析java web技术内幕 - 13章]
