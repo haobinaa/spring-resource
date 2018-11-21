@@ -497,7 +497,7 @@ public void preInstantiateSingletons() throws BeansException {
 
 接下来，我们就进入到 getBean(beanName) 方法了，这个方法我们经常用来从 BeanFactory 中获取一个 Bean，而初始化的过程也封装到了这个方法里。
 
-[getBean详细过程]()
+[getBean详细过程](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/applicationcontext/getBean.md)
 ### 参考资料
 - [spring ioc 源码分析](https://javadoop.com/post/spring-ioc#%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90)
 - [深入分析java web技术内幕 - 13章]
