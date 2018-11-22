@@ -100,6 +100,28 @@ protected final void refreshBeanFactory() throws BeansException {
  ##### 将xml中<bean>标签解析成BeanDefinition
 接下来就用这个Reader来加载xml配置， 具体实现流程： [reader过程-解析BeanDefinition](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/loadBeanDefinitions.md)
 
+会将配置文件解析成一个`BeanDefinitionHolder `实例， 接下来就是注册， 源码如下:
+``` 
+protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+   // 将 <bean /> 节点转换为 BeanDefinitionHolder，就是上面说的一堆
+   BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
+   if (bdHolder != null) {
+      // 如果有自定义属性的话，进行相应的解析，先忽略
+      bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+      try {
+         // 我们把这步叫做 注册Bean 吧
+         BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
+      }
+      catch (BeanDefinitionStoreException ex) {
+         getReaderContext().error("Failed to register bean definition with name '" +
+               bdHolder.getBeanName() + "'", ele, ex);
+      }
+      // 注册完成后，发送事件，本文不展开说这个
+      getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
+   }
+}
+```
+
 
 ##### 注册BeanDefinition
 
@@ -158,20 +180,20 @@ protected final void refreshBeanFactory() throws BeansException {
            throw new BeanDefinitionStoreException(beanDefinition.getResourceDescription()...
         }
         else if (oldBeanDefinition.getRole() < beanDefinition.getRole()) {
-           // log...用框架定义的 Bean 覆盖用户自定义的 Bean 
+           // 用框架定义的 Bean 覆盖用户自定义的 Bean 
         }
         else if (!beanDefinition.equals(oldBeanDefinition)) {
-           // log...用新的 Bean 覆盖旧的 Bean
+           // .用新的 Bean 覆盖旧的 Bean
         }
         else {
-           // log...用同等的 Bean 覆盖旧的 Bean，这里指的是 equals 方法返回 true 的 Bean
+           // 用同等的 Bean 覆盖旧的 Bean，这里指的是 equals 方法返回 true 的 Bean
         }
         // 覆盖
         this.beanDefinitionMap.put(beanName, beanDefinition);
      }
      else {
         // 判断是否已经有其他的 Bean 开始初始化了.
-        // 注意，"注册Bean" 这个动作结束，Bean 依然还没有初始化，我们后面会有大篇幅说初始化过程，
+        // 注意，"注册Bean" 这个动作结束，Bean 依然还没有初始化
         // 在 Spring 容器启动的最后，会 预初始化 所有的 singleton beans
         if (hasBeanCreationStarted()) {
            // Cannot modify startup-time collection elements anymore (for stable iteration)
@@ -189,7 +211,7 @@ protected final void refreshBeanFactory() throws BeansException {
            }
         }
         else {
-           // 最正常的应该是进到这个分支。
+           // 最正常的应该是进到这个分支, 并没有其他bean开始初始化
   
            // 将 BeanDefinition 放到这个 map 中，这个 map 保存了所有的 BeanDefinition
            this.beanDefinitionMap.put(beanName, beanDefinition);
@@ -213,4 +235,4 @@ protected final void refreshBeanFactory() throws BeansException {
   }
  ```
  
- 总结一下，到这里已经初始化了 Bean 容器，<bean /> 配置也相应的转换为了一个个 BeanDefinition，然后注册了各个 BeanDefinition 到注册中心，并且发送了注册事件。
+ 总结一下，到这里已经初始化了 Bean 容器，<bean /> 配置也相应的转换为了一个个 BeanDefinition，放入了beanDefinitionMap(beanName->beanDefinition)

@@ -11,9 +11,8 @@ finishBeanFactoryInitialization(beanFactory)这里会负责初始化所有的 si
 // 初始化剩余的 singleton beans
 protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
 
-   // 首先，初始化名字为 conversionService 的 Bean。本着送佛送到西的精神，我在附录中简单介绍了一下 ConversionService，因为这实在太实用了
-   // 什么，看代码这里没有初始化 Bean 啊！
-   // 注意了，初始化的动作包装在 beanFactory.getBean(...) 中，这里先不说细节，先往下看吧
+   // 首先，初始化名字为 conversionService 的 Bean。ConversionService主要用来做不同Class类型转换
+   // 初始化的动作封装在getBean()里面，下文会有讲解
    if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
          beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
       beanFactory.setConversionService(
@@ -41,7 +40,8 @@ protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory b
 
    // Stop using the temporary ClassLoader for type matching.
    beanFactory.setTempClassLoader(null);
-
+   
+   // 停止bean的配置
    // 没什么别的目的，因为到这一步的时候，Spring 已经开始预初始化 singleton beans 了，
    // 肯定不希望这个时候还出现 bean 定义解析、加载、注册。
    beanFactory.freezeConfiguration();
@@ -67,12 +67,12 @@ public void preInstantiateSingletons() throws BeansException {
    for (String beanName : beanNames) {
 
       // 合并父 Bean 中的配置，注意 <bean id="" class="" parent="" /> 中的 parent，用的不多吧，
-      // 考虑到这可能会影响大家的理解，我在附录中解释了一下 "Bean 继承"，不了解的请到附录中看一下
+      // 涉及到bean的继承
       RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 
       // 非抽象、非懒加载的 singletons。如果配置了 'abstract = true'，那是不需要初始化的
       if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
-         // 处理 FactoryBean(读者如果不熟悉 FactoryBean，请移步附录区了解)
+         // 处理 FactoryBean
          if (isFactoryBean(beanName)) {
             // FactoryBean 的话，在 beanName 前面加上 ‘&’ 符号。再调用 getBean，getBean 方法别急
             final FactoryBean<?> factory = (FactoryBean<?>) getBean(FACTORY_BEAN_PREFIX + beanName);
@@ -127,9 +127,9 @@ public void preInstantiateSingletons() throws BeansException {
 ```
 
 #### getBean
+普通bean的真正初始化的地方
 
 ``` 
-// AbstractBeanFactory 196
 @Override
 public Object getBean(String name) throws BeansException {
    return doGetBean(name, null, null, false);
@@ -150,7 +150,7 @@ protected <T> T doGetBean(
    // 检查下是不是已经创建过了
    Object sharedInstance = getSingleton(beanName);
 
-   // 这里说下 args 呗，虽然看上去一点不重要。前面我们一路进来的时候都是 getBean(beanName)，
+   // 前面我们一路进来的时候都是 getBean(beanName)，
    // 所以 args 传参其实是 null 的，但是如果 args 不为空的时候，那么意味着调用方不是希望获取 Bean，而是创建 Bean
    if (sharedInstance != null && args == null) {
       if (logger.isDebugEnabled()) {
@@ -307,8 +307,57 @@ protected <T> T doGetBean(
 }
 ```
 
-进入创建bean操作：`createBean(beanName, mbd, args);`
 
+
+进入创建bean操作：`createBean(String beanName, RootBeanDefinition mbd, Object[] args) throws BeanCreationException;`（第三个参数 args 数组代表创建实例需要的参数，不就是给构造方法用的参数，或者是工厂 Bean 的参数）
+
+``` 
+protected Object createBean(String beanName, RootBeanDefinition mbd, Object[] args) throws BeanCreationException {
+   if (logger.isDebugEnabled()) {
+      logger.debug("Creating instance of bean '" + beanName + "'");
+   }
+   RootBeanDefinition mbdToUse = mbd;
+
+   // 确保 BeanDefinition 中的 Class 被加载
+   Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
+   if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
+      mbdToUse = new RootBeanDefinition(mbd);
+      mbdToUse.setBeanClass(resolvedClass);
+   }
+
+   // 准备方法覆写，这里又涉及到一个概念：MethodOverrides，它来自于 bean 定义中的 <lookup-method /> 
+   // 和 <replaced-method />，如果读者感兴趣，回到 bean 解析的地方看看对这两个标签的解析。
+   // 我在附录中也对这两个标签的相关知识点进行了介绍，读者可以移步去看看
+   try {
+      mbdToUse.prepareMethodOverrides();
+   }
+   catch (BeanDefinitionValidationException ex) {
+      throw new BeanDefinitionStoreException(mbdToUse.getResourceDescription(),
+            beanName, "Validation of method overrides failed", ex);
+   }
+
+   try {
+      // 让 InstantiationAwareBeanPostProcessor 在这一步有机会返回代理，
+      // 在 《Spring AOP 源码分析》那篇文章中有解释，这里先跳过
+      Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+      if (bean != null) {
+         return bean; 
+      }
+   }
+   catch (Throwable ex) {
+      throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName,
+            "BeanPostProcessor before instantiation of bean failed", ex);
+   }
+   // 重头戏，创建 bean
+   Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+   if (logger.isDebugEnabled()) {
+      logger.debug("Finished creating instance of bean '" + beanName + "'");
+   }
+   return beanInstance;
+}
+```
+
+#### 创建Bean
 ``` 
 protected Object doCreateBean(final String beanName, final RootBeanDefinition mbd, final Object[] args)
       throws BeanCreationException {
@@ -611,3 +660,9 @@ protected Object doCreateBean(final String beanName, final RootBeanDefinition mb
     return wrappedBean;
  }
  ```
+ 
+ #### 补充说明
+ 
+ - [ConversionService](https://blog.csdn.net/u013485533/article/details/47296361): 用来做Class类型转换
+ - [bean的继承](https://blog.csdn.net/u013468917/article/details/51888619): child bean会继承parent bean的所有配置， parent  bean一般被设置为abstract 来当模板
+ - [spring循环依赖](https://blog.csdn.net/u010853261/article/details/77940767): 对bean的循环依赖的说明和解决方案

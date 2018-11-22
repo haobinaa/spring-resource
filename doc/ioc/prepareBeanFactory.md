@@ -47,7 +47,6 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 
    // 这里涉及到特殊的 bean，名为：loadTimeWeaver，这不是我们的重点，忽略它
    // tips: ltw 是 AspectJ 的概念，指的是在运行期进行织入，这个和 Spring AOP 不一样，
-   //    感兴趣的读者请参考我写的关于 AspectJ 的另一篇文章 https://www.javadoop.com/post/aspectj
    if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
       beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
       // Set a temporary ClassLoader for type matching.
@@ -73,3 +72,5 @@ protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
    }
 }
 ```
+
+这一步中， 设置了BeanFactory的加载器， 手动注册了一些特殊的bean
