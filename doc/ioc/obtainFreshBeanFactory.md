@@ -98,7 +98,7 @@ protected final void refreshBeanFactory() throws BeansException {
 实例化了一个beanDefinitionReader来读取配置， BeanDefinition中保存了Bean的信息， Bean可以认为就是BeanDefinition的实现
  
  ##### 将xml中<bean>标签解析成BeanDefinition
-接下来就用这个Reader来加载xml配置， 具体实现流程： [reader过程-解析BeanDefinition]()
+接下来就用这个Reader来加载xml配置， 具体实现流程： [reader过程-解析BeanDefinition](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/loadBeanDefinitions.md)
 
 
 ##### 注册BeanDefinition

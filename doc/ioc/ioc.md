@@ -152,8 +152,8 @@ protected void prepareRefresh() {
 }
 ```
 
-- [obtainFreshBeanFactory]()：初始化 BeanFactory、加载 Bean、注册 Bean 等等，这步结束后，Bean 并没有完成初始化。这里指的是 Bean 实例并未在这一步生成。
+- [obtainFreshBeanFactory](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/obtainFreshBeanFactory.md)：初始化 BeanFactory、加载 Bean、注册 Bean 等等，这步结束后，Bean 并没有完成初始化。这里指的是 Bean 实例并未在这一步生成。
 
-- [prepareBeanFactory]()：上一步注册了xml配置的bean， 在这一步会手动注册一些特殊的bean
+- [prepareBeanFactory](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/prepareBeanFactory.md)：上一步注册了xml配置的bean， 在这一步会手动注册一些特殊的bean
 
-- [finishBeanFactoryInitialization]():初始化所有的 singleton beans
+- [finishBeanFactoryInitialization](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/finishBeanFactoryInitialization.md):初始化所有的 singleton beans
