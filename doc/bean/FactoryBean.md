@@ -12,6 +12,10 @@ public interface FactoryBean<T> {
 
 当配置文件的class属性配置的实现类是FactoryBean 时,通过getBean() 方法返回的不是FactoryBean 本身,而是FactoryBean.getObject() 方法所返回的对象. 相当于FactoryBean.getObject() 代理了getBean() 方法.
 
+
+当使用ApplicationContext的getBean()方法获取FactoryBean实例本身而不是它所产生的bean，则要使用&符号+id。比如，现有FactoryBean，它有id，在容器上调用getBean("myBean")将返回FactoryBean所产生的bean，调用getBean("&myBean")将返回FactoryBean它本身的实例。
+
+
 #### 例子
 ``` 
 public class Car {
@@ -69,6 +73,36 @@ public class CarFactoryBean implements FactoryBean<Car> {
 调用 getBean(“car”) , Spring并不会返回CarFactoryBean 而是返回car
 
 如果希望返回CarFactoryBean 那就 getBean(“&car”)
+
+### 应用场景
+
+当bean的产生比较复杂的时候，常用的xml配置等方式已经无法描述出bean的信息，需要代理bean的生成方式，在mybatis，dubbo等框架中，都用到了FactoryBean
+
+myabtis的`org.mybatis.spring.SqlSessionFactoryBean`:
+
+``` 
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 自动扫描mapping.xml文件 -->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"></property>
+    </bean>
+    
+    
+
+public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, InitializingBean, ApplicationListener<ApplicationEvent> {
+    private static final Log LOGGER = LogFactory.getLog(SqlSessionFactoryBean.class);
+...
+public SqlSessionFactory getObject() throws Exception {
+        if (this.sqlSessionFactory == null) {
+            this.afterPropertiesSet();
+        }
+ 
+        return this.sqlSessionFactory;
+    }
+...
+}
+    
+```
 ## 参考
 - [what is a FactoryBean](https://spring.io/blog/2011/08/09/what-s-a-factorybean)
 - [FactoryBean的实现原理与作用](https://blog.csdn.net/u013185616/article/details/52335864)
