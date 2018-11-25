@@ -6,7 +6,7 @@ Spring让Bean对象有一定的扩展性，可以让用户加入一些自定义�
 
 在构建Bean的时候，有BeanPostProcessor
 
-在创建和销毁Bean的时候有InitializingBean和DisposableBean
+在创建和销毁Bean的时候有InitializingBean（在BPP的调用栈附近）和DisposableBean
 
 还有一个就是[FactoryBean](https://github.com/haobinaa/spring-resource/blob/master/doc/bean/FactoryBean.md)，这种特殊的Bean可以被用户更多的控制
 
@@ -195,9 +195,8 @@ public interface BeanPostProcessor {
 
 [使用例子](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/beanprocessor/App.java)
 
-#### 源码分析
 
-##### 注册BPP
+#### 注册BPP
 
 在Ioc的加载过程`refresh`中的`registerBeanPostProcessors()`注册了所有的BPP， 过程如下:
 ```
@@ -275,7 +274,7 @@ public interface BeanPostProcessor {
 3. 没有实现任何排序接口的普通的 bean-post-processors 再其次被注册，对应分类 nonOrderedPostProcessorNames
 4. 最后注册 internal-bean-post-processors，对应分类 internalPostProcessors（interal-bean-post-processor 指的是实现了 MergedBeanDefinitionPostProcessor 接口的 bean-post-processor）
 
-##### 调用BPP
+#### 调用BPP
 上述是BPP的注册过程，BPP的具体调用逻辑是：
 doCreateBean->initializeBean->invokeInitMethods
 
@@ -316,8 +315,94 @@ doCreateBean->initializeBean->invokeInitMethods
 2. 回调 bean-post-processors 接口方法
 3. 回调 InitializingBean 接口方法
 
+##### 注入Aware对象
 
-### InitializingBean
+##### 回调BPP接口方法
+BPP两个接口分别对应:
+- AbstractAutowireCapableBeanFactory.java#applyBeanPostProcessorsBeforeInitialization
+- AbstractAutowireCapableBeanFactory.java#applyBeanPostProcessorsAfterInitialization 
+
+在`initializeBean`中如下：
+``` 
+	protected Object initializeBean(final String beanName, final Object bean, @Nullable RootBeanDefinition mbd) {
+		if (System.getSecurityManager() != null) {
+			AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+				invokeAwareMethods(beanName, bean);
+				return null;
+			}, getAccessControlContext());
+		}
+		else {
+			invokeAwareMethods(beanName, bean);
+		}
+
+		Object wrappedBean = bean;
+		if (mbd == null || !mbd.isSynthetic()) {
+			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
+		}
+
+		try {
+			invokeInitMethods(beanName, wrappedBean, mbd);
+		}
+		catch (Throwable ex) {
+			throw new BeanCreationException(
+					(mbd != null ? mbd.getResourceDescription() : null),
+					beanName, "Invocation of init method failed", ex);
+		}
+		if (mbd == null || !mbd.isSynthetic()) {
+			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
+		}
+
+		return wrappedBean;
+	}
+```
+
+applyBeanPostProcessorsBeforeInitialization：
+``` 
+	public Object applyBeanPostProcessorsBeforeInitialization(Object existingBean, String beanName)
+			throws BeansException {
+
+		Object result = existingBean;
+		for (BeanPostProcessor beanProcessor : getBeanPostProcessors()) {
+			Object current = beanProcessor.postProcessBeforeInitialization(result, beanName);
+			if (current == null) {
+				return result;
+			}
+			result = current;
+		}
+		return result;
+	}
+```
+
+这里可以看到如果有一个BPP返回null，剩下的就不执行了。我想到了我们项目中也有这种设计，在评级之前和评级之后都有类似的回调
+
+##### 回调 InitializingBean 接口方法
+该步骤对应的是`initializeBean`中的`invokeInitMethods`, 回调 InitializingBean 接口方法, 源码：
+``` 
+protected void invokeInitMethods(String beanName, final Object bean, RootBeanDefinition mbd)
+        throws Throwable {
+
+    boolean isInitializingBean = (bean instanceof InitializingBean);
+    if (isInitializingBean && (mbd == null || !mbd.isExternallyManagedInitMethod("afterPropertiesSet"))) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Invoking afterPropertiesSet() on bean with name '" + beanName + "'");
+        }
+        .....
+        ((InitializingBean) bean).afterPropertiesSet();
+        .....
+    }
+
+    if (mbd != null) {
+        String initMethodName = mbd.getInitMethodName();
+        if (initMethodName != null && !(isInitializingBean && "afterPropertiesSet".equals(initMethodName)) &&
+                !mbd.isExternallyManagedInitMethod(initMethodName)) {
+            invokeCustomInitMethod(beanName, bean, mbd);
+        }
+    }
+}
+```
+
+可以看到，主要回调的是InitializingBean接口的afterPropertiesSet方法，所以，我们可以让某个 bean 实现 InitializingBean 接口，并通过该接口实现一些当 bean 实例化好以后的回调方法，注意afterPropertiesSet并不返回任何值，所以，这里不是像 bean-post-processor 那样对 bean 起到修饰的作用，而是起到纯粹的调用作用；
+
 
 ### DisposableBean
 
