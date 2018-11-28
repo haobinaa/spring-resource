@@ -11,7 +11,9 @@ Spring让Bean对象有一定的扩展性，可以让用户加入一些自定义�
 还有一个就是[FactoryBean](https://github.com/haobinaa/spring-resource/blob/master/doc/bean/FactoryBean.md)，这种特殊的Bean可以被用户更多的控制
 
 
+IOC Bean的扩展点，也是体现Bean生命周期的一部分， Bean的生命周期如图:
 
+![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/bean_lifecycle.png)
 
 
 ### BeanFactoryPostProcessor
@@ -409,7 +411,7 @@ protected void invokeInitMethods(String beanName, final Object bean, RootBeanDef
 
 ### DisposableBean
 
-
+如果bean实现了DisableBean，bean销毁或者容器关闭，將调用destroy（）方法
 ### 参考资料
 - [Spring的BeanFactoryPostProcessor和BeanPostProcessor](https://blog.csdn.net/caihaijiang/article/details/35552859)
 - [Spring Core Container：BeanPostProcessor 和 BeanFactoryPostProcessor](https://www.shangyang.me/2017/04/02/spring-core-container-sourcecode-analysis-bean-and-bean-factory-post-processors/#BeanFactoryPostProcessor)
