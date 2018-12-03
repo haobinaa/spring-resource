@@ -50,4 +50,19 @@ public class User {
     public void setAddress(String address) {
         this.address = address;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("{");
+        sb.append("\"firstName\":\"")
+                .append(firstName).append('\"');
+        sb.append(",\"lastName\":\"")
+                .append(lastName).append('\"');
+        sb.append(",\"age\":")
+                .append(age);
+        sb.append(",\"address\":\"")
+                .append(address).append('\"');
+        sb.append('}');
+        return sb.toString();
+    }
 }

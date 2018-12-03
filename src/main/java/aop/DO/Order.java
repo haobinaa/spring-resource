@@ -29,4 +29,15 @@ public class Order {
     public void setProduct(String product) {
         this.product = product;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("{");
+        sb.append("\"username\":\"")
+                .append(username).append('\"');
+        sb.append(",\"product\":\"")
+                .append(product).append('\"');
+        sb.append('}');
+        return sb.toString();
+    }
 }

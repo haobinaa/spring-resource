@@ -14,8 +14,8 @@
   <bean id="logCreateAdvisor" class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor">
     <!--advisor 实例的内部会有一个 advice-->
     <property name="advice" ref="logArgsAdvice" />
-    <!--只有下面这两个方法才会被拦截-->
-    <property name="mappedNames" value="createUser,createOrder" />
+    <!--只有下面这两个方法才会被拦截， 多个方法用逗号隔开-->
+    <property name="mappedNames" value="createUser" />
   </bean>
 
 
