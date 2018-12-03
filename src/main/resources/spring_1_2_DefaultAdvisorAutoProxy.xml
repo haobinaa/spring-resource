@@ -15,12 +15,12 @@
   <!--记录 create* 方法的传参-->
   <bean id="logArgsAdvisor" class="org.springframework.aop.support.RegexpMethodPointcutAdvisor">
     <property name="advice" ref="logArgsAdvice" />
-    <property name="pattern" value="com.javadoop.springaoplearning.service.*.create.*" />
+    <property name="pattern" value="aop.service.*.create.*" />
   </bean>
   <!--记录 query* 的返回值-->
   <bean id="logResultAdvisor" class="org.springframework.aop.support.RegexpMethodPointcutAdvisor">
     <property name="advice" ref="logResultAdvice" />
-    <property name="pattern" value="com.javadoop.springaoplearning.service.*.query.*" />
+    <property name="pattern" value="aop.service.*.query.*" />
   </bean>
 
 
