@@ -104,7 +104,97 @@ public class DefaultInterceptor implements MethodInterceptor {
 }
 ```
 
-[xml配置]()
+[xml配置](https://github.com/haobinaa/spring-resource/blob/master/src/main/resources/spring_1_2_interceptor.xml)
+
+#### AutoProxy
+
+在之前的advice配置当中， 我们配置出一个代理的bean使用的是`ProxyFactoryBean`， 这样需要对每一个需要代理的bean都配置一个代理bean。 Spring提供了自动代理，当 Spring 发现一个 bean 需要被切面织入的时候，Spring 会自动生成这个 bean 的一个代理来拦截方法的执行，确保定义的切面能被执行。
+
+##### BeanNameAutoProxyCreator 
+根据bean的名称来决定是否生成Proxy Bean，beanNames 中可以使用正则来匹配 bean 的名字
+
+配置如下:
+``` 
+  <bean class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+    <property name="interceptorNames">
+      <list>
+        <value>logArgsAdvice</value>
+        <value>logResultAdvice</value>
+      </list>
+    </property>
+    <!-- 可以通过正则匹配 -->
+    <property name="beanNames" value="*ServiceImpl" />
+  </bean>
+```
+
+在使用的时候，不在需要根据代理找bean：
+``` 
+UserService userService = (UserService) context.getBean(UserService.class);
+OrderService orderService = (OrderService) context.getBean(OrderService.class);
+```
+[完整的xml配置](https://github.com/hongjiev/spring-aop-learning/blob/master/src/main/resources/spring_1_2_BeanNameAutoProxy.xml)
+
+##### DefaultAdvisorAutoProxyCreator
+通过配置 Advisor，精确定位到需要被拦截的方法，然后使用内部的 Advice 执行逻辑处理。之前我们配置advisor的时候是这样配置的:
+``` 
+  <bean id="logCreateAdvisor" class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor">
+    <property name="advice" ref="logArgsAdvice" />
+    <property name="mappedNames" value="createUser" />
+  </bean>
+```
+Advisor 还有一个更加灵活的实现类 RegexpMethodPointcutAdvisor，它能实现正则匹配，如：
+``` 
+<bean id="logArgsAdvisor" class="org.springframework.aop.support.RegexpMethodPointcutAdvisor">
+    <property name="advice" ref="logArgsAdvice" />
+    <property name="pattern" value="com.javadoop.*.service.*.create.*" />
+</bean>
+```
+之后，我们需要配置 DefaultAdvisorAutoProxyCreator，它会使得所有的 Advisor 自动生效，无须其他配置。
+``` 
+ <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" />
+```
+
+### @AspectJ配置
+@AspectJ 和 AspectJ 没多大关系，并不是说基于 AspectJ 实现的，而仅仅是使用了 AspectJ 中的概念，包括使用的注解也是直接来自于 AspectJ 的包。
+
+#### 使用@AspectJ
+
+##### 引入依赖
+需要依赖 aspectjweaver.jar 这个包，这个包来自于 AspectJ：
+``` 
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.8.11</version>
+</dependency>
+```
+
+如果是使用 Spring Boot 的话，添加以下依赖即可：
+```
+<dependency>
+   <groupId>org.springframework.boot</groupId>
+   <artifactId>spring-boot-starter-aop</artifactId>
+</dependency>
+```
+
+之所以要引入 aspectjweaver 并不是因为我们需要使用 AspectJ 的处理功能，而是因为 Spring 使用了 AspectJ 提供的一些注解，实际上还是纯的 Spring AOP 代码
+
+##### 开启@AspectJ
+开启 @AspectJ 的注解配置方式，有两种方式：
+- 在 xml 中配置：
+``` 
+<aop:aspectj-autoproxy/>
+```
+- 使用 @EnableAspectJAutoProxy
+``` 
+@Configuration
+@EnableAspectJAutoProxy
+public class AppConfig {
+
+}
+```
+
+一旦开启了上面的配置，那么所有使用 @Aspect 注解的 bean 都会被 Spring 当做用来实现 AOP 的配置类，我们称之为一个 Aspect。
 ### 参考资料
 - [Spring aop 前世今生](https://javadoop.com/post/spring-aop-intro)
 - [深入分析java web技术内幕]
