@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+  <bean id="userServiceImpl" class="aop.service.impl.UserServiceImpl"/>
+  <bean id="orderServiceImpl" class="aop.service.impl.OrderServiceImpl"/>
+
+  <!--定义两个 advice-->
+  <bean id="defaultInterceptor" class="aop.spring_1_2.DefaultInterceptor"/>
+
+
+  <bean id="userServiceProxy" class="org.springframework.aop.framework.ProxyFactoryBean">
+    <!--代理的接口-->
+    <property name="proxyInterfaces">
+      <list>
+        <value>aop.service.UserService</value>
+      </list>
+    </property>
+    <!--代理的具体实现-->
+    <property name="target" ref="userServiceImpl"/>
+
+    <!--配置拦截器，这里可以配置 advice、advisor、interceptor-->
+    <property name="interceptorNames">
+      <list>
+        <value>defaultInterceptor</value>
+      </list>
+    </property>
+  </bean>
+</beans>
