@@ -25,8 +25,9 @@ Spring 延用了 AspectJ 中的概念，包括使用了 AspectJ 提供的 jar �
 - Spring 2.0 @AspectJ 配置：使用注解的方式来配置，这种方式感觉是最方便的，还有，这里虽然叫做 @AspectJ，但是这个和 AspectJ 其实没啥关系
 
 
+### xml配置aop的使用
 
-
+#### 普通的advice配置
 
 ### 参考资料
 - [Spring aop 前世今生](https://javadoop.com/post/spring-aop-intro)
