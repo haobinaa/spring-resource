@@ -13,12 +13,12 @@
   <!--开启 @AspectJ 配置-->
   <aop:aspectj-autoproxy/>
 
-  <bean id="logArgsAspect" class="aop.spring2_aspectJ.LogArgsAspect">
+  <bean id="logArgsAspect" class="aop.spring_2_aspectJ.LogArgsAspect">
     <!--如果需要配置参数，和普通的 bean 一样操作-->
     <property name="trace" value="true"/>
   </bean>
 
-  <bean class="aop.spring2_aspectJ.LogResultAspect">
+  <bean class="aop.spring_2_aspectJ.LogResultAspect">
     <property name="trace" value="true"/>
   </bean>
 

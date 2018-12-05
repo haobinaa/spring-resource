@@ -1,7 +1,7 @@
 /**
  * BrandBigData.com Inc. Copyright (c) 2018 All Rights Reserved.
  */
-package aop.spring2_aspectJ;
+package aop.spring_2_aspectJ;
 
 import java.util.Arrays;
 import org.aspectj.lang.JoinPoint;
@@ -20,7 +20,7 @@ public class LogArgsAspect {
     // 这里可以设置一些自己想要的属性，到时候在配置的时候注入进来
     private boolean trace = true;
 
-    @Before("aop.spring2_aspectJ.SystemArchitecture.businessService()")
+    @Before("aop.spring_2_aspectJ.SystemArchitecture.businessService()")
     public void logArgs(JoinPoint joinPoint) {
         if (trace) {
             System.out.println("[@AspectJ]方法执行前，打印入参：" + Arrays.toString(joinPoint.getArgs()));

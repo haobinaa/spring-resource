@@ -1,7 +1,7 @@
 /**
  * BrandBigData.com Inc. Copyright (c) 2018 All Rights Reserved.
  */
-package aop.spring2_aspectJ;
+package aop.spring_2_aspectJ;
 
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;

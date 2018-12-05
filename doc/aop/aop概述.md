@@ -157,9 +157,9 @@ Advisor 还有一个更加灵活的实现类 RegexpMethodPointcutAdvisor，它�
 ### @AspectJ配置
 @AspectJ 和 AspectJ 没多大关系，并不是说基于 AspectJ 实现的，而仅仅是使用了 AspectJ 中的概念，包括使用的注解也是直接来自于 AspectJ 的包。
 
-#### 使用@AspectJ
+下面示例如何使用@AspectJ:
 
-##### 引入依赖
+#### 引入依赖
 需要依赖 aspectjweaver.jar 这个包，这个包来自于 AspectJ：
 ``` 
 <dependency>
@@ -179,7 +179,7 @@ Advisor 还有一个更加灵活的实现类 RegexpMethodPointcutAdvisor，它�
 
 之所以要引入 aspectjweaver 并不是因为我们需要使用 AspectJ 的处理功能，而是因为 Spring 使用了 AspectJ 提供的一些注解，实际上还是纯的 Spring AOP 代码
 
-##### 开启@AspectJ
+#### 开启@AspectJ
 开启 @AspectJ 的注解配置方式，有两种方式：
 - 在 xml 中配置：
 ``` 
@@ -196,11 +196,12 @@ public class AppConfig {
 
 一旦开启了上面的配置，那么所有使用`@Aspect` 注解的 bean 都会被 Spring 当做用来实现 AOP 的配置类，我们称之为一个 Aspect。
 
-##### 配置pointcut
+#### 配置pointcut
 定义切点，用于定义哪些方法需要被增强或者说需要被拦截，有点类似于之前介绍的 Advisor 的方法匹配。
 
 配置方法:
 ``` 
+// execution指定方法
 @Pointcut("execution(* transfer(..))")// the pointcut expression
 private void anyOldTransfer() {}// the pointcut signature
 ```
@@ -219,6 +220,9 @@ private void anyOldTransfer() {}// the pointcut signature
 ```
 
 以上匹配中通常` .` 代表一个包名，`..` 代表包及其子包，方法参数任意匹配使用两个点 `..`
+
+更多的关于pointcut使用:[pointcut表达式详细配置](https://elim.iteye.com/blog/2395255)
+
 
 示例定义一个pointcut类, 定义出我们需要的切点
 ``` 
@@ -240,7 +244,7 @@ public class SystemArchitecture {
 }
 ```
 
-##### 定义advice
+#### 定义advice
 定义好切点之后， 就需要定义advice， 配置需要对这些被拦截的方法做些什么
 
 常用方法示例:
@@ -304,6 +308,55 @@ public class AdviceExample {
     }
 }
 ```
+
+### schema-based配置
+
+ Spring 2.0 以后提供的基于 <aop /> 命名空间的 XML 配置。这里说的 schema-based 就是指基于 aop 这个 schema。
+ 
+ #### 配置AspectJ
+ ``` 
+ <aop:config>
+     <aop:aspect id="myAspect" ref="aBean">
+         ...
+     </aop:aspect>
+ </aop:config>
+ 
+ <bean id="aBean" class="...">
+     ...
+ </bean>
+ ```
+所有的配置都在`<aop:config >` 下面。
+
+`<aop:aspect >` 中需要指定一个 bean，和前面介绍的 LogArgsAspect 和 LogResultAspect 一样，该 bean 中包含处理代码。
+
+然后，我们写好 Aspect 代码后，将其“织入”到合适的 Pointcut 中，这就是面向切面。
+
+#### 配置pointcut
+全局的Pointcut
+``` 
+<aop:config>
+
+    <aop:pointcut id="businessService"
+        expression="execution(* aop.service.*.*(..))"/>
+
+    <!--也可以像下面这样-->
+    <aop:pointcut id="businessService2"
+        expression="aop.SystemArchitecture.businessService()"/>
+
+</aop:config>
+```
+也可以给`<aop:aspect />`内部配置 Pointcut，这样该 Pointcut 仅用于该 Aspect：
+``` 
+<aop:config>
+    <aop:aspect ref="logArgsAspect">
+        <aop:pointcut id="internalPointcut"
+                expression="com.javadoop.SystemArchitecture.businessService()" />
+    </aop:aspect>
+</aop:config>
+```
+
+
+[xml配置]()
 ### 参考资料
 - [Spring aop 前世今生](https://javadoop.com/post/spring-aop-intro)
 - [深入分析java web技术内幕]
