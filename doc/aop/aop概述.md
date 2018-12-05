@@ -194,7 +194,116 @@ public class AppConfig {
 }
 ```
 
-一旦开启了上面的配置，那么所有使用 @Aspect 注解的 bean 都会被 Spring 当做用来实现 AOP 的配置类，我们称之为一个 Aspect。
+一旦开启了上面的配置，那么所有使用`@Aspect` 注解的 bean 都会被 Spring 当做用来实现 AOP 的配置类，我们称之为一个 Aspect。
+
+##### 配置pointcut
+定义切点，用于定义哪些方法需要被增强或者说需要被拦截，有点类似于之前介绍的 Advisor 的方法匹配。
+
+配置方法:
+``` 
+@Pointcut("execution(* transfer(..))")// the pointcut expression
+private void anyOldTransfer() {}// the pointcut signature
+```
+@Pointcut 中使用了 execution 来正则匹配方法签名, 除了execution，还有几种比较常见的匹配方式:
+- within：指定所在类或所在包下面的方法
+``` 
+如 @Pointcut("within(aop.springaoplearning.service..*)")
+```
+- @annotation：方法上具有特定的注解，如 @Subscribe 用于订阅特定的事件
+```
+如 @Pointcut("execution( .*(..)) && @annotation(aop.annotation.Subscribe)")
+```
+- bean(idOrNameOfBean)：匹配 bean 的名字
+``` 
+如 @Pointcut("bean(*Service)")
+```
+
+以上匹配中通常` .` 代表一个包名，`..` 代表包及其子包，方法参数任意匹配使用两个点 `..`
+
+示例定义一个pointcut类, 定义出我们需要的切点
+``` 
+@Aspect
+public class SystemArchitecture {
+
+    @Pointcut("within(aop.service..*)")
+    public void inServiceLayer() {}
+
+    @Pointcut("within(aop.dao..*)")
+    public void inDataAccessLayer() {}
+
+    @Pointcut("execution(* aop.service.*.*(..))")
+    public void businessService() {}
+
+    @Pointcut("execution(* aop.dao.*.*(..))")
+    public void dataAccessOperation() {}
+
+}
+```
+
+##### 定义advice
+定义好切点之后， 就需要定义advice， 配置需要对这些被拦截的方法做些什么
+
+常用方法示例:
+``` 
+@Aspect
+public class AdviceExample {
+
+    // 下面方法就是写拦截 "dao层实现"
+    @Before("aop.SystemArchitecture.dataAccessOperation()")
+    public void doAccessCheck() {
+        // ... 实现代码
+    }
+
+    // 当然，我们也可以直接"内联"Pointcut，直接在这里定义 Pointcut
+    // 把 Advice 和 Pointcut 合在一起了，但是这两个概念我们还是要区分清楚的
+    @Before("execution(* aop.dao.*.*(..))")
+    public void doAccessCheck() {
+        // ... 实现代码
+    }
+
+    @AfterReturning("aop.aop.SystemArchitecture.dataAccessOperation()")
+    public void doAccessCheck() {
+        // ...
+    }
+
+    @AfterReturning(
+        pointcut="com.javadoop.aop.SystemArchitecture.dataAccessOperation()",
+        returning="retVal")
+    public void doAccessCheck(Object retVal) {
+        // 这样，进来这个方法的处理时候，retVal 就是相应方法的返回值，是不是非常方便
+        //  ... 实现代码
+    }
+
+    // 异常返回
+    @AfterThrowing("com.javadoop.aop.SystemArchitecture.dataAccessOperation()")
+    public void doRecoveryActions() {
+        // ... 实现代码
+    }
+
+    @AfterThrowing(
+        pointcut="com.javadoop.aop.SystemArchitecture.dataAccessOperation()",
+        throwing="ex")
+    public void doRecoveryActions(DataAccessException ex) {
+        // ... 实现代码
+    }
+
+    // 注意理解它和 @AfterReturning 之间的区别，这里会拦截正常返回和异常的情况
+    @After("com.javadoop.aop.SystemArchitecture.dataAccessOperation()")
+    public void doReleaseLock() {
+        // 通常就像 finally 块一样使用，用来释放资源。
+        // 无论正常返回还是异常退出，都会被拦截到
+    }
+
+    // 感觉这个很有用吧，既能做 @Before 的事情，也可以做 @AfterReturning 的事情
+    @Around("com.javadoop.aop.SystemArchitecture.businessService()")
+    public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
+        // start stopwatch
+        Object retVal = pjp.proceed();
+        // stop stopwatch
+        return retVal;
+    }
+}
+```
 ### 参考资料
 - [Spring aop 前世今生](https://javadoop.com/post/spring-aop-intro)
 - [深入分析java web技术内幕]
