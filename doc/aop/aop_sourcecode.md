@@ -37,7 +37,7 @@ Spring AOP 的原理很简单，就是动态代理，它和 AspectJ 不一样，
 ```
 
 看下`DefaultAdvisorAutoProxyCreator`继承结构:
-![]()
+![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/DefaultAdvisorAutoProxyCreator.png)
 
 可以看到最顶层的接口是`BeanPostProcessor`， 他的两个方法分别在 init-method 的前后得到执行。
 ``` 
@@ -213,6 +213,7 @@ protected Object createProxy(
  ```
  该方法首先通过 createAopProxy() 创建一个 AopProxy 的实例：
  ``` 
+ // ProxyCreateSupport
  protected final synchronized AopProxy createAopProxy() {
     if (!this.active) {
        activate();
@@ -220,6 +221,49 @@ protected Object createProxy(
     return getAopProxyFactory().createAopProxy(this);
  }
  ```
+ AopProxy是通过AopProxyFactory创建的， 所以需要AopProxyFactory的实例， ProxyCreateSupport的构造方法中:
+ ``` 
+ public ProxyCreatorSupport() {
+    this.aopProxyFactory = new DefaultAopProxyFactory();
+ }
+ ```
+ 可以看到是用l`DefaultAopProxyFactory `, 他的createAopProxy方法:
+ ``` 
+ // DefaultAopProxyFactory 
+ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
+ 
+    @Override
+    public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
+       // (我也没用过这个optimize，默认false) || (proxy-target-class=true) || (没有接口)
+       if (config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config)) {
+          Class<?> targetClass = config.getTargetClass();
+          if (targetClass == null) {
+             throw new AopConfigException("TargetSource cannot determine target class: " +
+                   "Either an interface or a target is required for proxy creation.");
+          }
+          // 如果要代理的类本身就是接口，也会用 JDK 动态代理
+          // 我也没用过这个。。。
+          if (targetClass.isInterface() || Proxy.isProxyClass(targetClass)) {
+             return new JdkDynamicAopProxy(config);
+          }
+          return new ObjenesisCglibAopProxy(config);
+       }
+       else {
+          // 如果有接口，会跑到这个分支
+          return new JdkDynamicAopProxy(config);
+       }
+    }
+    // 判断是否有实现自定义的接口
+    private boolean hasNoUserSuppliedProxyInterfaces(AdvisedSupport config) {
+       Class<?>[] ifcs = config.getProxiedInterfaces();
+       return (ifcs.length == 0 || (ifcs.length == 1 && SpringProxy.class.isAssignableFrom(ifcs[0])));
+    }
+ 
+ }
+ ```
+ 到这里，我们知道 createAopProxy 方法有可能返回 JdkDynamicAopProxy 实例，也有可能返回 ObjenesisCglibAopProxy 实例，这里总结一下：
+1. 如果被代理的目标类实现了一个或多个自定义的接口，那么就会使用 JDK 动态代理，如果没有实现任何接口，会使用 CGLIB 实现代理，如果设置了 proxy-target-class="true"，那么都会使用 CGLIB。
+2. JDK 动态代理基于接口，所以只有接口中的方法会被增强，而 CGLIB 基于类继承，需要注意就是如果方法使用了 final 修饰，或者是 private 方法，是不能被增强的。
 ### 参考资料
 
 - [spring aop 源码解析](https://javadoop.com/post/spring-aop-source)
