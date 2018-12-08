@@ -33,6 +33,12 @@
       <artifactId>aspectjweaver</artifactId>
       <version>1.8.13</version>
     </dependency>
+    <!-- aspectJ 依赖 -->
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjrt</artifactId>
+      <version>1.8.13</version>
+    </dependency>
   </dependencies>
 
 </project>
