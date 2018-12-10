@@ -9,7 +9,6 @@
   <version>1.0-SNAPSHOT</version>
 
 
-
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -38,6 +37,12 @@
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjrt</artifactId>
       <version>1.8.13</version>
+    </dependency>
+    <!--cglib-->
+    <dependency>
+      <groupId>cglib</groupId>
+      <artifactId>cglib</artifactId>
+      <version>3.2.5</version>
     </dependency>
   </dependencies>
 
