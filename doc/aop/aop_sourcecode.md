@@ -264,6 +264,143 @@ protected Object createProxy(
  到这里，我们知道 createAopProxy 方法有可能返回 JdkDynamicAopProxy 实例，也有可能返回 ObjenesisCglibAopProxy 实例，这里总结一下：
 1. 如果被代理的目标类实现了一个或多个自定义的接口，那么就会使用 JDK 动态代理，如果没有实现任何接口，会使用 CGLIB 实现代理，如果设置了 proxy-target-class="true"，那么都会使用 CGLIB。
 2. JDK 动态代理基于接口，所以只有接口中的方法会被增强，而 CGLIB 基于类继承，需要注意就是如果方法使用了 final 修饰，或者是 private 方法，是不能被增强的。
+
+备注： [jdk代理和cglib代理的简单使用](https://github.com/haobinaa/spring-resource/blob/master/doc/aop/jdk%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E5%92%8Ccglib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86.md)
+
+分别看一下两个AopProxy实现类的`getProxy`方法：
+
+#### JdkDynamicAopProxy 
+``` 
+@Override
+public Object getProxy(ClassLoader classLoader) {
+   if (logger.isDebugEnabled()) {
+      logger.debug("Creating JDK dynamic proxy: target source is " + this.advised.getTargetSource());
+   }
+   Class<?>[] proxiedInterfaces = AopProxyUtils.completeProxiedInterfaces(this.advised, true);
+   findDefinedEqualsAndHashCodeMethods(proxiedInterfaces);
+   // 第三个参数是需要实现InvocationHandler
+   return Proxy.newProxyInstance(classLoader, proxiedInterfaces, this);
+}
+```
+java.lang.reflect.Proxy.newProxyInstance(…) 方法需要三个参数，第一个是 ClassLoader，第二个参数代表需要实现哪些接口，第三个参数最重要，是 InvocationHandler 实例，我们看到这里传了 this，因为 JdkDynamicAopProxy 本身实现了 InvocationHandler 接口。
+
+
+``` 
+// JdkDynamicAopProxy实现InvocationHandler
+@Override
+public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+   MethodInvocation invocation;
+   Object oldProxy = null;
+   boolean setProxyContext = false;
+
+   TargetSource targetSource = this.advised.targetSource;
+   Class<?> targetClass = null;
+   Object target = null;
+
+   try {
+      if (!this.equalsDefined && AopUtils.isEqualsMethod(method)) {
+         // The target does not implement the equals(Object) method itself.
+         // 代理的 equals 方法
+         return equals(args[0]);
+      }
+      else if (!this.hashCodeDefined && AopUtils.isHashCodeMethod(method)) {
+         // The target does not implement the hashCode() method itself.
+         // 代理的 hashCode 方法
+         return hashCode();
+      }
+      else if (method.getDeclaringClass() == DecoratingProxy.class) {
+         // There is only getDecoratedClass() declared -> dispatch to proxy config.
+         // 
+         return AopProxyUtils.ultimateTargetClass(this.advised);
+      }
+      else if (!this.advised.opaque && method.getDeclaringClass().isInterface() &&
+            method.getDeclaringClass().isAssignableFrom(Advised.class)) {
+         // Service invocations on ProxyConfig with the proxy config...
+         return AopUtils.invokeJoinpointUsingReflection(this.advised, method, args);
+      }
+
+      Object retVal;
+
+      // 如果设置了 exposeProxy，那么将 proxy 放到 ThreadLocal 中
+      if (this.advised.exposeProxy) {
+         // Make invocation available if necessary.
+         oldProxy = AopContext.setCurrentProxy(proxy);
+         setProxyContext = true;
+      }
+
+      // May be null. Get as late as possible to minimize the time we "own" the target,
+      // in case it comes from a pool.
+      target = targetSource.getTarget();
+      if (target != null) {
+         targetClass = target.getClass();
+      }
+
+      // Get the interception chain for this method.
+      // 创建一个 chain，包含所有要执行的 advice
+      List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+
+      // Check whether we have any advice. If we don't, we can fallback on direct
+      // reflective invocation of the target, and avoid creating a MethodInvocation.
+      if (chain.isEmpty()) {
+         // We can skip creating a MethodInvocation: just invoke the target directly
+         // Note that the final invoker must be an InvokerInterceptor so we know it does
+         // nothing but a reflective operation on the target, and no hot swapping or fancy proxying.
+         // chain 是空的，说明不需要被增强，这种情况很简单
+         Object[] argsToUse = AopProxyUtils.adaptArgumentsIfNecessary(method, args);
+         retVal = AopUtils.invokeJoinpointUsingReflection(target, method, argsToUse);
+      }
+      else {
+         // We need to create a method invocation...
+         // 执行方法，得到返回值
+         invocation = new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
+         // Proceed to the joinpoint through the interceptor chain.
+         retVal = invocation.proceed();
+      }
+
+      // Massage return value if necessary.
+      Class<?> returnType = method.getReturnType();
+      if (retVal != null && retVal == target &&
+            returnType != Object.class && returnType.isInstance(proxy) &&
+            !RawTargetAccess.class.isAssignableFrom(method.getDeclaringClass())) {
+         // Special case: it returned "this" and the return type of the method
+         // is type-compatible. Note that we can't help if the target sets
+         // a reference to itself in another returned object.
+         retVal = proxy;
+      }
+      else if (retVal == null && returnType != Void.TYPE && returnType.isPrimitive()) {
+         throw new AopInvocationException(
+               "Null return value from advice does not match primitive return type for: " + method);
+      }
+      return retVal;
+   }
+   finally {
+      if (target != null && !targetSource.isStatic()) {
+         // Must have come from TargetSource.
+         targetSource.releaseTarget(target);
+      }
+      if (setProxyContext) {
+         // Restore old proxy.
+         AopContext.setCurrentProxy(oldProxy);
+      }
+   }
+}
+```
+大概步骤是：在执行每个方法的时候，判断下该方法是否需要被一次或多次增强（执行一个或多个 advice）
+
+
+
+
+#### ObjenesisCglibAopProxy
+
+ObjenesisCglibAopProxy 继承了 CglibAopProxy，而 CglibAopProxy 继承了 AopProxy。
+
+ObjenesisCglibAopProxy的 getProxy(classLoader) 方法在父类 CglibAopProxy 类中， 代码量较大， 主要是CGLIB的核心 `Enhancer`
+
+
+
+
+
+
 ### 参考资料
 
 - [spring aop 源码解析](https://javadoop.com/post/spring-aop-source)

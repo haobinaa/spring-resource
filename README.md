@@ -9,3 +9,4 @@ spring resouce code learn
 - [IOC容器中的常用扩展点](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/ioc%E5%AE%B9%E5%99%A8%E6%89%A9%E5%B1%95%E7%82%B9.md)
 - [aop的使用方式(xml、aspectJ、schema)](https://github.com/haobinaa/spring-resource/blob/master/doc/aop/aop%E6%A6%82%E8%BF%B0.md)
 - [aop源码分析](https://github.com/haobinaa/spring-resource/blob/master/doc/aop/aop_sourcecode.md)
+- [jdk动态代理和cglib动态代理](https://github.com/haobinaa/spring-resource/blob/master/doc/aop/jdk%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E5%92%8Ccglib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86.md)
