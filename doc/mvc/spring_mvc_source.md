@@ -149,8 +149,32 @@ springmvc的applicationContext会去读取配置文件, 解析标签， 加载be
 
 #### DispatcherServlet
 DispatcherServlet的类层次结构如图:
-![]()
+![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/DispatcherServlest.png)
+
+有几个生命周期接口：
+- ApplicationContextAware保存了spring上下文
+- EnvironmentAware保存了环境变量对象
+- 继承了Servlet即包含了servlet的生命周期
+
+
+##### DispatcherServlet调用过程
 ``` 
+protected void doService(HttpServletRequest request, HttpServletResponse response) throws Exception {
+	//将相关配置设置到request作用于中
+	request.setAttribute(WEB_APPLICATION_CONTEXT_ATTRIBUTE, getWebApplicationContext());
+	request.setAttribute(LOCALE_RESOLVER_ATTRIBUTE, this.localeResolver);
+	request.setAttribute(THEME_RESOLVER_ATTRIBUTE, this.themeResolver);
+	request.setAttribute(THEME_SOURCE_ATTRIBUTE, getThemeSource());
+  	...
+	request.setAttribute(OUTPUT_FLASH_MAP_ATTRIBUTE, new FlashMap());
+	request.setAttribute(FLASH_MAP_MANAGER_ATTRIBUTE, this.flashMapManager);
+
+	try {
+		doDispatch(request, response);
+	}
+}
+
+
 protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
 	...
 	try {
@@ -184,7 +208,93 @@ protected void doDispatch(HttpServletRequest request, HttpServletResponse respon
 	}
 	...
 }
+private void processDispatchResult(HttpServletRequest request, HttpServletResponse response,
+		HandlerExecutionChain mappedHandler, ModelAndView mv, Exception exception) throws Exception {
+	boolean errorView = false;
+  	//如果HandlerAdapter.handler()执行异常 则进行异常处理
+	if (exception != null) {
+		...
+          Object handler = (mappedHandler != null ? mappedHandler.getHandler() : null);
+      //4.1
+        mv = processHandlerException(request, response, handler, exception);
+        errorView = (mv != null);
+	}
+
+
+	if (mv != null && !mv.wasCleared()) {
+      	//4.2 视图解析 渲染返回
+		render(mv, request, response);
+		if (errorView) {
+			WebUtils.clearErrorRequestAttributes(request);
+		}
+	}
+}
+//异常处理
+protected ModelAndView processHandlerException(HttpServletRequest request, HttpServletResponse response,
+		Object handler, Exception ex) throws Exception {
+	ModelAndView exMv = null;
+	for (HandlerExceptionResolver handlerExceptionResolver : this.handlerExceptionResolvers) {
+      	//使用异常解析器解析异常(类似HandlerAdapter参数解析,调用)
+		exMv = handlerExceptionResolver.resolveException(request, response, handler, ex);
+		if (exMv != null) {
+			break;
+		}
+    }
+  	...
+}
+protected void render(ModelAndView mv, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	//国际化
+	Locale locale = this.localeResolver.resolveLocale(request);
+	response.setLocale(locale);
+	View view;
+	if (mv.isReference()) {
+		//4.2.1视图解析
+		view = resolveViewName(mv.getViewName(), mv.getModelInternal(), locale, request);
+		...
+	}
+	else {
+		view = mv.getView();
+	}
+	....
+	try {
+		if (mv.getStatus() != null) {
+			response.setStatus(mv.getStatus().value());
+		}
+      	//渲染返回
+		view.render(mv.getModelInternal(), request, response);
+	}
+	...
+}
+protected View resolveViewName(String viewName, Map<String, Object> model, Locale locale,
+		HttpServletRequest request) throws Exception {
+	//视图解析
+	for (ViewResolver viewResolver : this.viewResolvers) {
+		View view = viewResolver.resolveViewName(viewName, locale);
+		if (view != null) {
+			return view;
+		}
+	}
+	return null;
+}
 ```
+流程概述：
+1. 调用HandlerMapping得到HandlerChain(Handler+Intercept)
+2. 调用HandlerAdapter执行handle过程(参数解析 过程调用)
+3. 异常处理(过程类似HanderAdapter)
+4. 调用ViewResolver进行视图解析
+5. 渲染视图
+
+#### HandleMapping
+
+HandlerMapping是对： 请求路径->处理映射过程的一个管理, 接口定义如下:
+``` 
+public interface HandlerMapping {
+  //根据request获取处理链
+   HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception;
+}
+```
+以`RequestHandlerMapping`为例， 继承关系:
+
 
 
 
