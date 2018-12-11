@@ -294,12 +294,168 @@ public interface HandlerMapping {
 }
 ```
 以`RequestHandlerMapping`为例， 继承关系:
+![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/RequestHandlerMapping.png)
+
+几个重要的接口，描述功能：
+- ServletContextAware:保存ServletContext
+- ApplicationContext:保存Spring上下文
+- InitializingBean:初始化映射关系
 
 
+看下代码：
+``` 
+//### RequestMappingHandlerMapping
+
+// 1.实现InitializingBean的afterPropertiesSet， bean初始化的时候调用
+public void afterPropertiesSet() {
+  this.config = new RequestMappingInfo.BuilderConfiguration();
+  this.config.setUrlPathHelper(getUrlPathHelper());
+  this.config.setPathMatcher(getPathMatcher());
+  this.config.setSuffixPatternMatch(this.useSuffixPatternMatch);
+  this.config.setTrailingSlashMatch(this.useTrailingSlashMatch);
+  this.config.setRegisteredSuffixPatternMatch(this.useRegisteredSuffixPatternMatch);
+  this.config.setContentNegotiationManager(getContentNegotiationManager());
+  // 调用父类的afterPropertiesSet
+  super.afterPropertiesSet();
+}
+protected boolean isHandler(Class<?> beanType) {
+  return (AnnotatedElementUtils.hasAnnotation(beanType, Controller.class) ||
+      AnnotatedElementUtils.hasAnnotation(beanType, RequestMapping.class));
+}	
+protected RequestMappingInfo getMappingForMethod(Method method, Class<?> handlerType) {
+  RequestMappingInfo info = createRequestMappingInfo(method);
+  if (info != null) {
+    RequestMappingInfo typeInfo = createRequestMappingInfo(handlerType);
+    if (typeInfo != null) {
+      info = typeInfo.combine(info);
+    }
+  }
+  return info;
+}
+	
+	
+	
+//### AbstractHandlerMethodMapping	
+
+// 父类的初始化钩子
+public void afterPropertiesSet() {
+		initHandlerMethods();
+}
+
+protected void initHandlerMethods() {
+		if (logger.isDebugEnabled()) {
+			logger.debug("Looking for request mappings in application context: " + getApplicationContext());
+		}
+		//从容器中获取所有object类型名
+		String[] beanNames = (this.detectHandlerMethodsInAncestorContexts ?
+				BeanFactoryUtils.beanNamesForTypeIncludingAncestors(obtainApplicationContext(), Object.class) :
+				obtainApplicationContext().getBeanNamesForType(Object.class));
+
+		for (String beanName : beanNames) {
+		//抽象,过滤(在RequestMappingHandlerMapping中根据Controller和RequestMapping注解过滤)
+			if (!beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) {
+				Class<?> beanType = null;
+				try {
+					beanType = obtainApplicationContext().getType(beanName);
+				}
+				catch (Throwable ex) {
+					// An unresolvable bean type, probably from a lazy bean - let's ignore it.
+					if (logger.isDebugEnabled()) {
+						logger.debug("Could not resolve target class for bean with name '" + beanName + "'", ex);
+					}
+				}
+				if (beanType != null && isHandler(beanType)) {
+				//探测类中定义的handler方法
+					detectHandlerMethods(beanName);
+				}
+			}
+		}
+		handlerMethodsInitialized(getHandlerMethods());
+}
+protected void detectHandlerMethods(final Object handler) {
+		Class<?> handlerType = (handler instanceof String ?
+				obtainApplicationContext().getType((String) handler) : handler.getClass());
+
+		if (handlerType != null) {
+			final Class<?> userType = ClassUtils.getUserClass(handlerType);
+			//得到符合条件的handler方法
+			Map<Method, T> methods = MethodIntrospector.selectMethods(userType,
+					(MethodIntrospector.MetadataLookup<T>) method -> {
+						try {
+						//抽象,得到映射信息(如RequestMappingInfo)
+							return getMappingForMethod(method, userType);
+						}
+						catch (Throwable ex) {
+							throw new IllegalStateException("Invalid mapping on handler class [" +
+									userType.getName() + "]: " + method, ex);
+						}
+					});
+			if (logger.isDebugEnabled()) {
+				logger.debug(methods.size() + " request handler methods found on " + userType + ": " + methods);
+			}
+			//注册handler映射关系
+			methods.forEach((method, mapping) -> {
+				Method invocableMethod = AopUtils.selectInvocableMethod(method, userType);
+				//保存映射路径和处理方法(还有跨域信息)
+				registerHandlerMethod(handler, invocableMethod, mapping);
+			});
+		}
+}
+```
+大概流程为:
+1. 获取所有object子类
+2. 根据条件过滤出handle处理类
+3. 解析handle类中定义的处理方法
+4. 注册映射关系
 
 
+ `DispatcherServlet#getHander()`的实现：
+ ``` 
+ // AbstractHandlerMapping
+ public final HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+ //抽象,调用子类实现得到一个handler(可以是任一对象,需要通过HandleAdapter来解析)
+ //RequestMappingInfoHandlerMapping中具体实现就是匹配请求路径和RequestMapping注解
+ 		Object handler = getHandlerInternal(request);
+ 		if (handler == null) {
+ 			handler = getDefaultHandler();
+ 		}
+ 		if (handler == null) {
+ 			return null;
+ 		}
+ 		// Bean name or resolved handler?
+ 		if (handler instanceof String) {
+ 			String handlerName = (String) handler;
+ 			handler = obtainApplicationContext().getBean(handlerName);
+ 		}
+    //包装handle成HandlerExecutionChain
+ 		HandlerExecutionChain executionChain = getHandlerExecutionChain(handler, request);
+ 		 //如果是跨域请求 则根据@CrossOrigin配置添加前置Intercept
+ 		if (CorsUtils.isCorsRequest(request)) {
+ 			CorsConfiguration globalConfig = this.globalCorsConfigSource.getCorsConfiguration(request);
+ 			CorsConfiguration handlerConfig = getCorsConfiguration(handler, request);
+ 			CorsConfiguration config = (globalConfig != null ? globalConfig.combine(handlerConfig) : handlerConfig);
+ 			executionChain = getCorsHandlerExecutionChain(request, executionChain, config);
+ 		}
+ 		return executionChain;
+ 	}
+ 	
+ 	
+ 	
+ 	
+// AbstractHandlerMethodMapping
+  protected HandlerMethod getHandlerInternal(HttpServletRequest request) throws Exception {
+  //得到映射路径
+  String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
+  ...
+  try {
+  	//根据映射路径获取HandlerMethod
+  	HandlerMethod handlerMethod = lookupHandlerMethod(lookupPath, request);
+  	return (handlerMethod != null ? handlerMethod.createWithResolvedBean() : null);
+  }
+  ...
+ }
 
-
+ ```
 
 
 
