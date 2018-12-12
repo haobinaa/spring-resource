@@ -457,11 +457,40 @@ protected void detectHandlerMethods(final Object handler) {
 
  ```
 
+#### HandlerAdapter
 
-
+ HandlerAdapter根据HandlerMethod信息,对http请求进行参数解析,并完成调用
+ 
+ 接口定义:
+ ``` 
+ public interface HandlerAdapter {
+    //判断是否支持该handler类型的解析
+    boolean supports(Object handler);
+    //参数解析 并调用handler完成过程调用 
+    ModelAndView handle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception;
+    //用于处理http请求头中的last-modified
+    long getLastModified(HttpServletRequest request, Object handler);
+ 
+ }
+ ```
+ 
+ 实现类`RequestMappingHandlerAdapter`的继承关系:
+ ![]() 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 流程总览：
-![]()
+![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/spring_mvc_code_process.png)
 
 ### 参考资料
 - [spring mvc 思维导图](http://developer.51cto.com/art/201707/545155.htm)

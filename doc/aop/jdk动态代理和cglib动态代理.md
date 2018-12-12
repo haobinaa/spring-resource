@@ -6,7 +6,6 @@ jdk动态代理依赖两个重要的接口(类)：
 
 #####  InvocationHandler
 每一个动态代理类都必须要实现InvocationHandler这个接口，并且每个代理类（Proxy）的实例都关联到了一个handler，当我们通过代理对象调用一个方法的时候，这个方法的调用就会被转发为由InvocationHandler这个接口的 invoke 方法来进行调用。
-
 ``` 
 public interface InvocationHandler { 
     public Object invoke(Object proxy,Method method,Object[] args) throws Throwable; 
