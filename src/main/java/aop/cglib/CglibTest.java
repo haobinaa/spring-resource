@@ -18,7 +18,6 @@ public class CglibTest {
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(RealObj.class);
         enhancer.setCallback(proxyObj);
-
         RealObj obj = (RealObj) enhancer.create();
         obj.visit();
     }

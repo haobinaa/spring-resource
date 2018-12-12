@@ -96,9 +96,7 @@ public static void main(String[] args) {
 
  Cglib是一个优秀的动态代理框架，它的底层使用ASM（JAVA字节码处理框架）在内存中动态的生成被代理类的子类。使CGLIB即使被代理类没有实现任何接口也可以实现动态代理功能。但是不能对final修饰的类进行代理。
  
- #### 原理
- 
-通过字节码技术为一个类创建子类，并在子类中采用方法拦截的技术拦截所有父类方法的调用
+
 
 #### 使用示例
 1.首先定义一个需要被代理的对象
@@ -133,3 +131,12 @@ public static void main(String[] args) {
       obj.visit();
 }
 ```
+
+ #### 原理
+ 
+cglib通过字节码技术为一个类创建子类，并在子类中采用方法拦截的技术拦截(绑定call back)所有父类方法的调用
+
+总结：
+- CGlib可以传入接口也可以传入普通的类，接口使用实现的方式,普通类使用会使用继承的方式生成代理类(通常cglib用于代理类而非接口)
+- 由于是继承方式,如果是 static方法,private方法,final方法等描述的方法是不能被代理的
+- CGLIB会默认代理Object中equals,toString,hashCode,clone等方法。比JDK代理多了clone
