@@ -475,14 +475,86 @@ protected void detectHandlerMethods(final Object handler) {
  ```
  
  实现类`RequestMappingHandlerAdapter`的继承关系:
- ![]() 
+ ![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/RequestMappingHandlerAdapter.png) 
+ 
+ 可以看出同样有ApplicationContextAware,ServletContextAware,InitializingBean三个生命周期接口
+ 
+ InitializingBean：
+ ``` 
+ public void afterPropertiesSet() {
+  // 1.装载@ControllerAdvice注解的类
+  initControllerAdviceCache();
+ // 2.装载ArgumentResolver(默认+自定义)
+  if (this.argumentResolvers == null) {
+     List<HandlerMethodArgumentResolver> resolvers = getDefaultArgumentResolvers();
+     //包装成一个Composite对象
+     this.argumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
+  }
+  // 2.装载InitBinderArgumentResolvers(默认+自定义)
+  if (this.initBinderArgumentResolvers == null) {
+     List<HandlerMethodArgumentResolver> resolvers = getDefaultInitBinderArgumentResolvers();
+     //包装成一个Composite对象
+     this.initBinderArgumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
+  }
+  // 3.装载ReturnValueHandlers(默认+自定义)
+  if (this.returnValueHandlers == null) {
+     List<HandlerMethodReturnValueHandler> handlers = getDefaultReturnValueHandlers();
+     //包装成一个Composite对象
+     this.returnValueHandlers = new HandlerMethodReturnValueHandlerComposite().addHandlers(handlers);
+  }
+ }
+ ```
+ 
+ ##### 1. 装载带有ControllerAdvices注解的对象
+ ``` 
+ private void initControllerAdviceCache() {
+   //从容器中获取所有带有ControllerAdvices注解的类名 并包装成ControllerAdviceBean
+   List<ControllerAdviceBean> beans = ControllerAdviceBean.findAnnotatedBeans(getApplicationContext());
+   OrderComparator.sort(beans);
+   List<Object> responseBodyAdviceBeans = new ArrayList<Object>();
+   for (ControllerAdviceBean bean : beans) {
+     //筛选出带有@ModelAttribute且不带@RequestMapping注解的方法
+     Set<Method> attrMethods = HandlerMethodSelector.selectMethods(bean.getBeanType(), MODEL_ATTRIBUTE_METHODS);
+     if (!attrMethods.isEmpty()) {
+       //保存到modelAttributeAdviceCache中
+       this.modelAttributeAdviceCache.put(bean, attrMethods);
+     }
+     //筛选出带InitBinder注解的方法 添加到initBinderAdviceCache中
+     Set<Method> binderMethods = HandlerMethodSelector.selectMethods(bean.getBeanType(), INIT_BINDER_METHODS);
+     if (!binderMethods.isEmpty()) {
+       this.initBinderAdviceCache.put(bean, binderMethods);
+     }
+     //筛选实现RequestBodyAdvice接口 添加到requestResponseBodyAdviceBeans中
+     if (RequestBodyAdvice.class.isAssignableFrom(bean.getBeanType())) {
+       requestResponseBodyAdviceBeans.add(bean);
+       if (logger.isInfoEnabled()) {
+         logger.info("Detected RequestBodyAdvice bean in " + bean);
+       }
+     }
+     //筛选实现ResponseBodyAdvice接口 添加到requestResponseBodyAdviceBeans中
+     if (ResponseBodyAdvice.class.isAssignableFrom(bean.getBeanType())) {
+       requestResponseBodyAdviceBeans.add(bean);
+       if (logger.isInfoEnabled()) {
+         logger.info("Detected ResponseBodyAdvice bean in " + bean);
+       }
+     }
+   }
+   //保存到全局变量
+   if (!responseBodyAdviceBeans.isEmpty()) {
+     this.responseBodyAdvice.addAll(0, responseBodyAdviceBeans);
+   }
+ }
+ ```
+ 1. 获取所有带有ControllerAdvices注解的类名 并包装成ControllerAdviceBean
+ 2.  筛选出带有@ModelAttribute且不带@RequestMapping注解的方法
+ 3.  筛选出带InitBinder注解的方法 添加到initBinderAdviceCache中
+ 4.  筛选实现RequestBodyAdvice接口 添加到responseBodyAdvice中
+ 5.  筛选实现ResponseBodyAdvice接口 添加到responseBodyAdvice中
  
  
- 
- 
- 
- 
- 
+##### 2.装载ArgumentResolvers(默认+自定义)
+##### 3.装载InitBinderArgumentResolvers(默认+自定义)
+##### 4.装载ReturnValueHandlers(默认+自定义)
  
  
  
