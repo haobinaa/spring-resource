@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans>
+  <!--这里的class记得改，不然后面反射找不到 -->
+  <bean id = "userDao" class="com.yulam.myannotation.dao.UserDaoImpl" />
+  <bean id = "user1Dao" class="com.yulam.myannotation.dao.User1DaoImpl" />
+  <bean id = "user2Dao" class="com.yulam.myannotation.dao.User2DaoImpl" />
+  <bean id = "userService" class = "com.yulam.myannotation.service.UserServiceImpl" />
+</beans>
