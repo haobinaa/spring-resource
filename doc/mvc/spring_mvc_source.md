@@ -557,9 +557,205 @@ protected void detectHandlerMethods(final Object handler) {
 ##### 4.装载ReturnValueHandlers(默认+自定义)
  
  
+ #### DispatcherServelet调用HanderAdapter过程
+ 
+ 在`DispatcherServlet`的`doDispacth`中， 调用 `HanderAdapter`的部分是:
+ ``` 
+ //1.调用support()方法判断是否支持改handler的解析
+ HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
+ // 如果是Get或Head请求 调用getLastModified()获取上次更新时间 
+ String method = request.getMethod();
+ boolean isGet = "GET".equals(method);
+ if (isGet || "HEAD".equals(method)) {
+    long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
+    if (logger.isDebugEnabled()) {
+       logger.debug("Last-Modified value for [" + getRequestUri(request) + "] is: " + lastModified);
+    }
+   //如果小于浏览器缓存更新时间 则直接返回 浏览器使用本地缓存
+    if (new ServletWebRequest(request, response).checkNotModified(lastModified) && isGet) {
+       return;
+    }
+ }
+ if (!mappedHandler.applyPreHandle(processedRequest, response)) {
+    return;
+ }
+ // 调用handler完成过程调用
+ mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+ ```
+DisPatcherServlet调用HandlerAdapter分为三步:
+##### 1.调用support()方法判断是否支持改handler的解析
+``` 
+#org.springframework.web.servlet.DispatcherServlet
+//在doDispatch()方法中调用了getHandlerAdapter(Object)方法来得到一个HandlerAdapter
+protected HandlerAdapter getHandlerAdapter(Object handler) throws ServletException {
+    //调用HandlerAdapter.support()方法 判断是否支持该handler对象的解析
+   for (HandlerAdapter ha : this.handlerAdapters) {
+        ...
+      if (ha.supports(handler)) {
+         return ha;
+      }
+   }
+  ...
+}
+#org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+@Override
+public final boolean supports(Object handler) {
+	return (handler instanceof HandlerMethod && supportsInternal((HandlerMethod) handler));
+}
+#org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+@Override
+protected boolean supportsInternal(HandlerMethod handlerMethod) {
+	return true;
+}
+``` 
  
  
+##### 2.如果是Get或Head请求 调用getLastModified()获取上次更新时间
+
+如果是Get或Head请求 调用getLastModified()获取上次更新时间, 如果小于浏览器缓存更新时间 则直接返回 浏览器使用本地缓存
+``` 
+if (isGet || "HEAD".equals(method)) {
+					long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
+					...
+					// 如果小于浏览器更新缓存时间
+					if (new ServletWebRequest(request, response).checkNotModified(lastModified) && isGet) {
+						return;
+					}
+}
+```
+
+##### 3.调用handler()方法完成过程调用(参数解析 返回值解析)
+``` 
+# DispatcherServlet
+ mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
  
+#org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+@Override
+public final ModelAndView handle(HttpServletRequest request, HttpServletResponse response, Object handler)
+      throws Exception {
+   return handleInternal(request, response, (HandlerMethod) handler);
+}
+
+#org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+@Override
+protected ModelAndView handleInternal(HttpServletRequest request,
+		HttpServletResponse response, HandlerMethod handlerMethod) throws Exception {
+	//对http协议缓存方面的请求头的处理(expire,cache-control)
+	if (getSessionAttributesHandler(handlerMethod).hasSessionAttributes()) {
+		// Always prevent caching in case of session attribute management.
+		checkAndPrepare(request, response, this.cacheSecondsForSessionAttributeHandlers, true);
+	}
+	else {
+		// Uses configured default cacheSeconds setting.
+		checkAndPrepare(request, response, true);
+	}
+	// Execute invokeHandlerMethod in synchronized block if required.
+	if (this.synchronizeOnSession) {//是否使用session锁
+		HttpSession session = request.getSession(false);
+		if (session != null) {
+          	//得到互斥量
+			Object mutex = WebUtils.getSessionMutex(session);
+			synchronized (mutex) {//执行过程调用
+				return invokeHandleMethod(request, response, handlerMethod);
+			}
+		}
+	}
+	//执行过程调用
+	return invokeHandleMethod(request, response, handlerMethod);
+}
+//根据HandlerMethod解析参数 并完成过程调用得到一个ModelAndView
+private ModelAndView invokeHandleMethod(HttpServletRequest request,
+		HttpServletResponse response, HandlerMethod handlerMethod) throws Exception {
+	ServletWebRequest webRequest = new ServletWebRequest(request, response);
+	//使用initBinderAdviceCache对@initBinder进行处理
+	WebDataBinderFactory binderFactory = getDataBinderFactory(handlerMethod);
+    // 使用modelAttributeAdviceCache对@ModelAttribute进行处理
+	ModelFactory modelFactory = getModelFactory(handlerMethod, binderFactory);
+	ServletInvocableHandlerMethod requestMappingMethod = createRequestMappingMethod(handlerMethod, binderFactory);
+	ModelAndViewContainer mavContainer = new ModelAndViewContainer();
+mavContainer.addAllAttributes(RequestContextUtils.getInputFlashMap(request));
+	modelFactory.initModel(webRequest, mavContainer, requestMappingMethod);		mavContainer.setIgnoreDefaultModelOnRedirect(this.ignoreDefaultModelOnRedirect);
+	//对异步的处理 暂时不管 TODO后面再分析
+  	...
+  	//1 完成过程调用
+	requestMappingMethod.invokeAndHandle(webRequest, mavContainer);
+	if (asyncManager.isConcurrentHandlingStarted()) {
+		return null;
+	}
+	//2 包装ModelAndView
+	return getModelAndView(mavContainer, modelFactory, webRequest);
+}
+```
+============ invokeAndHandler
+```
+#org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod
+public void invokeAndHandle(ServletWebRequest webRequest,
+                    ModelAndViewContainer mavContainer, Object... providedArgs) throws Exception {
+  // 1.1 参数解析 并完成过程调用
+  Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
+  setResponseStatus(webRequest);
+  ...
+    try {
+      //1.2 使用returnValueHandlers对返回结果进行处理 讲结果塞到mavContainer中 过程类似参数解析
+      this.returnValueHandlers.handleReturnValue(
+        returnValue, getReturnValueType(returnValue), mavContainer, webRequest);
+    }
+}
+#org.springframework.web.method.support.InvocableHandlerMethod
+        public Object invokeForRequest(NativeWebRequest request, ModelAndViewContainer mavContainer,
+                                       Object... providedArgs) throws Exception {
+      //1.1.1 参数解析并得到绑定的结果
+      Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
+      ...
+        //1.1.2 反射完成过程调用 
+        Object returnValue = doInvoke(args);
+      ...
+        return returnValue;
+    }
+    private Object[] getMethodArgumentValues(NativeWebRequest request, ModelAndViewContainer mavContainer,
+                                             Object... providedArgs) throws Exception {
+      //参数信息
+      MethodParameter[] parameters = getMethodParameters();
+      Object[] args = new Object[parameters.length];
+      for (int i = 0; i < parameters.length; i++) {
+        //调用HandlerMethodArgumentResolver#supportsParameter判断是否支持
+        if (this.argumentResolvers.supportsParameter(parameter)) {
+          try {
+            //调用HandlerMethodArgumentResolver#resolveArgument进行解析
+            args[i] = this.argumentResolvers.resolveArgument(
+              parameter, mavContainer, request, this.dataBinderFactory);
+            continue;
+          }
+          ...
+        }
+        ...
+      }
+      return args;
+    }
+```
+============ getModelAndView
+``` 
+//从mavContainer取出结果 包装成ModelAndView
+private ModelAndView getModelAndView(ModelAndViewContainer mavContainer,
+                                     ModelFactory modelFactory, NativeWebRequest webRequest) throws Exception {
+  modelFactory.updateModel(webRequest, mavContainer);
+  if (mavContainer.isRequestHandled()) {
+    return null;
+  }
+  ModelMap model = mavContainer.getModel();
+  ModelAndView mav = new ModelAndView(mavContainer.getViewName(), model);
+  if (!mavContainer.isViewReference()) {
+    mav.setView((View) mavContainer.getView());
+  }
+  //如果是redirect请求
+  if (model instanceof RedirectAttributes) {
+    Map<String, ?> flashAttributes = ((RedirectAttributes) model).getFlashAttributes();
+    HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
+    RequestContextUtils.getOutputFlashMap(request).putAll(flashAttributes);
+  }
+  return mav;
+}
+```
 
 流程总览：
 ![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/spring_mvc_code_process.png)
