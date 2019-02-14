@@ -17,7 +17,7 @@ protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
 
 ### refreshBeanFactory
 
-// AbstractApplicationContext.java
+// AbstractRefreshableApplicationContext.java
 
 ``` 
 @Override

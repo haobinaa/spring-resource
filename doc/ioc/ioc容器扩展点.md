@@ -200,6 +200,10 @@ public interface BeanPostProcessor {
 
 [使用例子](https://github.com/haobinaa/spring-resource/blob/master/src/main/java/base/beanprocessor/App.java)
 
+#### BeanPostProcessor和BeanFactoryPostProcessor区别
+
+1. `BeanFactoryPostProcess`重载`postProcessBeanFactory`方法，在加载bean的定义之后，实例化bean之前执行的。而`BeanPostProcessor
+`重载了`postProcessBeforeInitialization`和`postProcessAfterInitialization`方法，分别在bean实例化前后执行
 
 #### 注册BPP
 
@@ -329,36 +333,36 @@ BPP两个接口分别对应:
 
 在`initializeBean`中如下：
 ``` 
-	protected Object initializeBean(final String beanName, final Object bean, @Nullable RootBeanDefinition mbd) {
-		if (System.getSecurityManager() != null) {
-			AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-				invokeAwareMethods(beanName, bean);
-				return null;
-			}, getAccessControlContext());
-		}
-		else {
-			invokeAwareMethods(beanName, bean);
-		}
+protected Object initializeBean(final String beanName, final Object bean, @Nullable RootBeanDefinition mbd) {
+  if (System.getSecurityManager() != null) {
+    AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+      invokeAwareMethods(beanName, bean);
+      return null;
+    }, getAccessControlContext());
+  }
+  else {
+    invokeAwareMethods(beanName, bean);
+  }
 
-		Object wrappedBean = bean;
-		if (mbd == null || !mbd.isSynthetic()) {
-			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
-		}
+  Object wrappedBean = bean;
+  if (mbd == null || !mbd.isSynthetic()) {
+    wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
+  }
 
-		try {
-			invokeInitMethods(beanName, wrappedBean, mbd);
-		}
-		catch (Throwable ex) {
-			throw new BeanCreationException(
-					(mbd != null ? mbd.getResourceDescription() : null),
-					beanName, "Invocation of init method failed", ex);
-		}
-		if (mbd == null || !mbd.isSynthetic()) {
-			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
-		}
+  try {
+    invokeInitMethods(beanName, wrappedBean, mbd);
+  }
+  catch (Throwable ex) {
+    throw new BeanCreationException(
+        (mbd != null ? mbd.getResourceDescription() : null),
+        beanName, "Invocation of init method failed", ex);
+  }
+  if (mbd == null || !mbd.isSynthetic()) {
+    wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
+  }
 
-		return wrappedBean;
-	}
+  return wrappedBean;
+}
 ```
 
 applyBeanPostProcessorsBeforeInitialization：

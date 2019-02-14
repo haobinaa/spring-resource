@@ -8,6 +8,7 @@
     <property name="desc" value="测试一下啦"/>
     <property name="remark" value="这是备注信息啦啦啦"/>
   </bean>
+
   <bean id="myBeanFactoryPostProcessor" class="base.beanfactorypostprocessor.MyBeanFactoryPostProcessor"/>
 
 </beans>
