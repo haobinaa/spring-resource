@@ -4,10 +4,10 @@ spring resouce code learn
 自己学习Spring过程中的一些记录， 太复杂的功能记录大概流程， 一些重要点注释实现细节和补充一些使用的例子
 
 ### 目录
-- [bean的定义-BeanDefinition ](https://github.com/haobinaa/spring-resource/blob/master/doc/bean/bean.md)
+- [bean的定义-BeanDefinition ](./doc/bean/bean.md)
 - [IOC启动过程分析](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/ioc.md)
-- [IOC容器中的常用扩展点](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/ioc%E5%AE%B9%E5%99%A8%E6%89%A9%E5%B1%95%E7%82%B9.md)
-- [aop的使用方式(xml、aspectJ、schema)](https://github.com/haobinaa/spring-resource/blob/master/doc/aop/aop%E6%A6%82%E8%BF%B0.md)
-- [aop源码分析](https://github.com/haobinaa/spring-resource/blob/master/doc/aop/aop_sourcecode.md)
-- [jdk动态代理和cglib动态代理](https://github.com/haobinaa/spring-resource/blob/master/doc/aop/jdk%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E5%92%8Ccglib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86.md)
-- [SpringMVC源码分析](https://github.com/haobinaa/spring-resource/blob/master/doc/mvc/spring_mvc_source.md)
+- [IOC容器中的常用扩展点](./doc/ioc/ioc容器扩展点.md)
+- [spring事件机制-ApplicationEvent](./doc/ioc/spring事件处理与监听.md)
+- [aop的使用方式(xml、aspectJ、schema)](./doc/aop/aop_sourcecode.md)
+- [jdk动态代理和cglib动态代理](./doc/aop/jdk动态代理和cglib动态代理.md)
+- [SpringMVC源码分析](./doc/mvc/spring_mvc_source.md)
