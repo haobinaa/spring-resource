@@ -14,7 +14,6 @@ import org.springframework.context.ApplicationListener;
  */
 public class EmailListener implements ApplicationListener {
 
-    @Override
     public void onApplicationEvent(ApplicationEvent event) {
         if (event instanceof EmailEvent) {
             EmailEvent emailEvent = (EmailEvent) event;
