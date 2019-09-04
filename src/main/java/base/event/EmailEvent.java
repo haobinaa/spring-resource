@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationEvent;
  * @version $Id: EmailEvent.java, v0.1 2019/3/19 11:43 HaoBin 
  */
 public class EmailEvent extends ApplicationEvent {
+
     public String email;
 
     public EmailEvent(Object source) {

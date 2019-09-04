@@ -18,7 +18,7 @@ public class EmailListener implements ApplicationListener {
         if (event instanceof EmailEvent) {
             EmailEvent emailEvent = (EmailEvent) event;
             emailEvent.print();
-            System.out.println("email event email is:"+emailEvent.email);
+            System.out.println("email event email is:"+emailEvent.getSource());
         }
     }
 }
