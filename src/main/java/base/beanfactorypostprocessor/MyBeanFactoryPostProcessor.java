@@ -15,7 +15,12 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
  */
 public class MyBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
 
-    @Override
+
+    /**
+     * 可以通过 BeanFactoryPostProcessor 对 BeanDefinition 作一些修改
+     * @param beanFactory
+     * @throws BeansException
+     */
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
         System.out.println("调用MyBeanFactoryPostProcessor的postProcessBeanFactory");
         BeanDefinition bd = beanFactory.getBeanDefinition("myJavaBean");

@@ -204,16 +204,17 @@ protected <T> T doGetBean(
          checkMergedBeanDefinition(mbd, beanName, args);
 
          // 先初始化依赖的所有 Bean，这个很好理解。
-         // 注意，这里的依赖指的是 depends-on 中定义的依赖
+         // 注意，这里的依赖指的是 depends-on 中定义的依赖（depends-on标签对应的bean）
+         // depends-on 一般来指定 Bean初始化和销毁时的顺序
          String[] dependsOn = mbd.getDependsOn();
          if (dependsOn != null) {
             for (String dep : dependsOn) {
-               // 检查是不是有循环依赖，这里的循环依赖和我们前面说的循环依赖又不一样，这里肯定是不允许出现的，不然要乱套了，读者想一下就知道了
+               // 检查是不是有循环依赖，这里的循环依赖是depends-on之间的循环依赖，这里肯定是不允许出现的
                if (isDependent(beanName, dep)) {
                   throw new BeanCreationException(mbd.getResourceDescription(), beanName,
                         "Circular depends-on relationship between '" + beanName + "' and '" + dep + "'");
                }
-               // 注册一下依赖关系
+               // 将depend-on属性值注册到dependentBeanMap
                registerDependentBean(dep, beanName);
                // 先初始化被依赖项
                getBean(dep);
