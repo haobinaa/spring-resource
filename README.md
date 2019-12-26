@@ -11,4 +11,4 @@ spring resouce code learn
 - [aop的使用方式(xml、aspectJ、schema)](./doc/aop/aop_sourcecode.md)
 - [jdk动态代理和cglib动态代理](./doc/aop/jdk动态代理和cglib动态代理.md)
 - [SpringMVC源码分析](./doc/mvc/spring_mvc_source.md)
-- [手动导入Bean的方式](src/main/java/importbean/EnableColor.java)
+- [手动导入Bean的方式(import方式导入bean，这也是SpringBoot的@EnableAutoConfiguration的基石)](src/main/java/importbean/EnableColor.java)
