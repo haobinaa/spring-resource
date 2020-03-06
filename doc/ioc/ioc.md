@@ -66,11 +66,12 @@ public void refresh() throws BeansException, IllegalStateException {
 
       try {
          // 具体的子类可以在这步的时候添加一些特殊的 BeanFactoryPostProcessor 的实现类或做点什么事
+        // BeanFactoryPostProcessor 可以修改 BeanDefinition
          postProcessBeanFactory(beanFactory);
          // 调用 BeanFactoryPostProcessor 各个实现类的 postProcessBeanFactory(factory) 方法
          invokeBeanFactoryPostProcessors(beanFactory);
 
-         // 注册 BeanPostProcessor 的实现类，注意看和 BeanFactoryPostProcessor 的区别
+         // 注册 BeanPostProcessor 的实现类
          // 此接口两个方法: postProcessBeforeInitialization 和 postProcessAfterInitialization
          // 两个方法分别在 Bean 初始化之前和初始化之后得到执行。注意，到这里 Bean 还没初始化
          registerBeanPostProcessors(beanFactory);
@@ -85,7 +86,7 @@ public void refresh() throws BeansException, IllegalStateException {
          // 具体的子类可以在这里初始化一些特殊的 Bean（在初始化 singleton beans 之前）
          onRefresh();
 
-         // 注册事件监听器，监听器需要实现 ApplicationListener 接口。这也不是我们的重点，过
+         // 注册事件监听器，监听器需要实现 ApplicationListener 接口。
          registerListeners();
 
          // 重点，重点，重点
