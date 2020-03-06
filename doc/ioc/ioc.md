@@ -1,5 +1,5 @@
 ### BeanFactory
-![](https://javadoop.com/blogimages/spring-context/2.png)
+![](/images/ioc/beanFactory.png)
 
 BeanFactory，生产 bean 的工厂，它负责生产和管理各个 bean 实例。
 
