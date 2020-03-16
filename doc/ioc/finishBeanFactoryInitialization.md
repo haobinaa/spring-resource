@@ -19,7 +19,9 @@ protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory b
             beanFactory.getBean(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class));
    }
 
-   // 注册一个 StringValueResolver 来处理 @Value 注解
+   // Register a default embedded value resolver if no bean post-processor
+   // (such as a PropertyPlaceholderConfigurer bean) registered any before:
+   // at this point, primarily for resolution in annotation attribute values.
    if (!beanFactory.hasEmbeddedValueResolver()) {
       beanFactory.addEmbeddedValueResolver(new StringValueResolver() {
          @Override
@@ -30,11 +32,14 @@ protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory b
    }
 
    // 先初始化 LoadTimeWeaverAware 类型的 Bean
-   // 这是 AspectJ 相关的内容。这里不用关心
+   // 之前也说过，这是 AspectJ 相关的内容，放心跳过吧
    String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware.class, false, false);
    for (String weaverAwareName : weaverAwareNames) {
       getBean(weaverAwareName);
    }
+
+   // Stop using the temporary ClassLoader for type matching.
+   beanFactory.setTempClassLoader(null);
    
    // 停止bean的配置
    // 没什么别的目的，因为到这一步的时候，Spring 已经开始预初始化 singleton beans 了，
@@ -66,11 +71,10 @@ public void preInstantiateSingletons() throws BeansException {
       RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 
       // 非抽象、非懒加载的 singletons。如果配置了 'abstract = true'，那是不需要初始化的
-      // abstract bean 不能实例化但是属性可以注入到其他的bean，所以一般是做模板使用
       if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
          // 处理 FactoryBean
          if (isFactoryBean(beanName)) {
-            // FactoryBean 的话，在 beanName 前面加上 ‘&’ 符号。再调用 getBean
+            // FactoryBean 的话，在 beanName 前面加上 ‘&’ 符号。再调用 getBean，getBean 方法别急
             final FactoryBean<?> factory = (FactoryBean<?>) getBean(FACTORY_BEAN_PREFIX + beanName);
             // 判断当前 FactoryBean 是否是 SmartFactoryBean 的实现，此处忽略，直接跳过
             boolean isEagerInit;
@@ -100,7 +104,7 @@ public void preInstantiateSingletons() throws BeansException {
 
 
    // 到这里说明所有的非懒加载的 singleton beans 已经完成了初始化
-   // 如果我们定义的 bean 是实现了 SmartInitializingSingleton 接口的，那么在这里得到回调，此处可以忽略
+   // 如果我们定义的 bean 是实现了 SmartInitializingSingleton 接口的，那么在这里得到回调，忽略
    for (String beanName : beanNames) {
       Object singletonInstance = getSingleton(beanName);
       if (singletonInstance instanceof SmartInitializingSingleton) {
@@ -143,7 +147,7 @@ protected <T> T doGetBean(
    // 注意跟着这个，这个是返回值
    Object bean; 
 
-   // 检查下是不是已经创建过了(是否能从一级缓存 singletonObjects 中获取)
+   // 检查下是不是已经创建过了
    Object sharedInstance = getSingleton(beanName);
 
    // 前面我们一路进来的时候都是 getBean(beanName)，
@@ -159,6 +163,7 @@ protected <T> T doGetBean(
       }
       // 下面这个方法：如果是普通 Bean 的话，直接返回 sharedInstance，
       // 如果是 FactoryBean 的话，返回它创建的那个实例对象
+      // (FactoryBean 知识，读者若不清楚请移步附录)
       bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
    }
 
@@ -193,30 +198,22 @@ protected <T> T doGetBean(
        * 稍稍总结一下：
        * 到这里的话，要准备创建 Bean 了，对于 singleton 的 Bean 来说，容器中还没创建过此 Bean；
        * 对于 prototype 的 Bean 来说，本来就是要创建一个新的 Bean。
-       * 备注一下，singleton 是 单例bean
-       * prototype 是每次都创建一个新的bean， 这里都是 bean 的作用域
-       * 一般来说 spring 只需要处理这两种作用域类型的 bean
-       * 在 Web 环境下还有以下几种作用域:
-       * 1. request:仅对HTTP请求产生作用，，每次HTTP请求都会创建一个新的Bean，适用于WebApplicationContext环境
-       * 2. session:仅用于HTTP Session，同一个Session共享一个Bean实例
-       * 3. global-session:同session作用域不同的是，所有的Session共享一个Bean实例
        */
       try {
          final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
          checkMergedBeanDefinition(mbd, beanName, args);
 
          // 先初始化依赖的所有 Bean，这个很好理解。
-         // 注意，这里的依赖指的是 depends-on 中定义的依赖（depends-on标签对应的bean）
-         // depends-on 一般来指定 Bean初始化和销毁时的顺序
+         // 注意，这里的依赖指的是 depends-on 中定义的依赖
          String[] dependsOn = mbd.getDependsOn();
          if (dependsOn != null) {
             for (String dep : dependsOn) {
-               // 检查是不是有循环依赖，这里的循环依赖是depends-on之间的循环依赖，这里肯定是不允许出现的
+               // 检查是不是有循环依赖，这里的循环依赖和我们前面说的循环依赖又不一样，这里肯定是不允许出现的，不然要乱套了，读者想一下就知道了
                if (isDependent(beanName, dep)) {
                   throw new BeanCreationException(mbd.getResourceDescription(), beanName,
                         "Circular depends-on relationship between '" + beanName + "' and '" + dep + "'");
                }
-               // 将depend-on属性值注册到dependentBeanMap
+               // 注册一下依赖关系
                registerDependentBean(dep, beanName);
                // 先初始化被依赖项
                getBean(dep);
@@ -329,7 +326,8 @@ protected Object createBean(String beanName, RootBeanDefinition mbd, Object[] ar
    }
 
    // 准备方法覆写，这里又涉及到一个概念：MethodOverrides，它来自于 bean 定义中的 <lookup-method /> 
-   // 和 <replaced-method />，
+   // 和 <replaced-method />，如果读者感兴趣，回到 bean 解析的地方看看对这两个标签的解析。
+   // 我在附录中也对这两个标签的相关知识点进行了介绍，读者可以移步去看看
    try {
       mbdToUse.prepareMethodOverrides();
    }
@@ -340,6 +338,7 @@ protected Object createBean(String beanName, RootBeanDefinition mbd, Object[] ar
 
    try {
       // 让 InstantiationAwareBeanPostProcessor 在这一步有机会返回代理，
+      // 在 《Spring AOP 源码分析》那篇文章中有解释，这里先跳过
       Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
       if (bean != null) {
          return bean; 
@@ -349,7 +348,7 @@ protected Object createBean(String beanName, RootBeanDefinition mbd, Object[] ar
       throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName,
             "BeanPostProcessor before instantiation of bean failed", ex);
    }
-   // 重点，创建 bean
+   // 重头戏，创建 bean
    Object beanInstance = doCreateBean(beanName, mbdToUse, args);
    if (logger.isDebugEnabled()) {
       logger.debug("Finished creating instance of bean '" + beanName + "'");
@@ -366,15 +365,13 @@ protected Object doCreateBean(final String beanName, final RootBeanDefinition mb
    // Instantiate the bean.
    BeanWrapper instanceWrapper = null;
    if (mbd.isSingleton()) {
-      // 从 FactoryBean 缓存中移除
       instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
    }
    if (instanceWrapper == null) {
       // 说明不是 FactoryBean，这里实例化 Bean，这里非常关键，细节之后再说
-      // 这里仅仅是把 bean 实例化出来了，并没有填充对象的属性
       instanceWrapper = createBeanInstance(beanName, mbd, args);
    }
-   // 这个就是 Bean 里面的 我们定义的类的实例，很多地方我直接描述成 "bean 实例"
+   // 这个就是 Bean 里面的 我们定义的类 的实例，很多地方我直接描述成 "bean 实例"
    final Object bean = (instanceWrapper != null ? instanceWrapper.getWrappedInstance() : null);
    // 类型
    Class<?> beanType = (instanceWrapper != null ? instanceWrapper.getWrappedClass() : null);
@@ -395,11 +392,7 @@ protected Object doCreateBean(final String beanName, final RootBeanDefinition mb
       }
    }
 
-
-   // 下面这块代码是为了解决循环依赖的问题，主要是用到了 bean 的三级缓存，将自己提前暴露在
-   // singletonFactory 中
-   // 在 getSingleton 的时候，会从三级缓存 singletonFactories 移动到二级缓存 earlySingleton 中
-   // 我的博客中对这一块进行了一个详细的说明
+   // 下面这块代码是为了解决循环依赖的问题，以后有时间，我再对循环依赖这个问题进行解析吧
    boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
          isSingletonCurrentlyInCreation(beanName));
    if (earlySingletonExposure) {
