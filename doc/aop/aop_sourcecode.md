@@ -70,16 +70,14 @@ protected Object doCreateBean(final String beanName, final RootBeanDefinition mb
     try {
         // 2. 装载属性
         populateBean(beanName, mbd, instanceWrapper);
-        if (exposedObject != null) {
-            // 3. 初始化
-            exposedObject = initializeBean(beanName, exposedObject, mbd);
-        }
+        // 3. 初始化
+        exposedObject = initializeBean(beanName, exposedObject, mbd);
     }
     ...
 }
 
 ```
-在上面第 3 步 initializeBean(...) 方法中会调用 BeanPostProcessor 中的方法，如下：
+在上面第 3 步 `initializeBean`会调用 BeanPostProcessor 中的方法，如下：
 ``` 
 protected Object initializeBean(final String beanName, final Object bean, RootBeanDefinition mbd) {
    ...
@@ -103,7 +101,8 @@ protected Object initializeBean(final String beanName, final Object bean, RootBe
 }
 ```
 
-efaultAdvisorAutoProxyCreator 的继承结构中，postProcessAfterInitialization() 方法在其父类 AbstractAutoProxyCreator 这一层被覆写了：
+`DefaultAdvisorAutoProxyCreator` 的继承结构中，postProcessAfterInitialization
+() 方法在其父类 `AbstractAutoProxyCreator` 这一层被覆写了：
 ``` 
 public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
    if (bean != null) {
@@ -116,7 +115,7 @@ public Object postProcessAfterInitialization(Object bean, String beanName) throw
 }
 ```
 
-wrapIfNecessary方法将返回代理类:
+wrapIfNecessary 将返回代理类:
 ``` 
 protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
    if (beanName != null && this.targetSourcedBeans.contains(beanName)) {
@@ -131,12 +130,10 @@ protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) 
    }
 
    // 返回匹配当前 bean 的所有的 advisor、advice、interceptor
-   // 对于本文的例子，"userServiceImpl" 和 "OrderServiceImpl" 这两个 bean 创建过程中，
-   //   到这边的时候都会返回两个 advisor
    Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
    if (specificInterceptors != DO_NOT_PROXY) {
       this.advisedBeans.put(cacheKey, Boolean.TRUE);
-      // 创建代理...创建代理...创建代理...
+      // 创建代理
       // 这里的SingletonTargetSource封装了真实实现类的信息
       Object proxy = createProxy(
             bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
@@ -148,9 +145,8 @@ protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) 
    return bean;
 }
 ```
-getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null)，这个方法将得到所有的可用于拦截当前 bean 的 advisor、advice、interceptor
-
-createProxy创建代理, :
+`getAdvicesAndAdvisorsForBean`将得到所有的可用于拦截当前 bean 的 advisor、advice、interceptor。
+然后调用 `createProxy` 创建代理, :
 ``` 
 // 注意看这个方法的几个参数，
 //   第三个参数携带了所有的 advisors

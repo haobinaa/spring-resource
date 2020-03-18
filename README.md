@@ -9,6 +9,7 @@ spring resouce code learn
 - [IOC容器中的常用扩展点](./doc/ioc/ioc容器扩展点.md)
 - [spring事件机制-ApplicationEvent](./doc/ioc/spring事件处理与监听.md)
 - [aop的使用方式(xml、aspectJ、schema)](./doc/aop/aop_sourcecode.md)
+- [aop源码](./doc/aop/aop_sourcecode.md)
 - [jdk动态代理和cglib动态代理](./doc/aop/jdk动态代理和cglib动态代理.md)
 - [SpringMVC源码分析](./doc/mvc/spring_mvc_source.md)
 - [手动导入Bean的方式(import方式导入bean，这也是SpringBoot的@EnableAutoConfiguration的基石)](src/main/java/importbean/EnableColor.java)
