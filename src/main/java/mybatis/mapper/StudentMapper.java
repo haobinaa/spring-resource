@@ -12,4 +12,6 @@ public interface StudentMapper {
 	public int updateStudentName(@Param("name") String name, @Param("id") int id);
 
 	public StudentEntity getStudentByIdWithClassInfo(int id);
+
+	public StudentEntity findOne(int id);
 }

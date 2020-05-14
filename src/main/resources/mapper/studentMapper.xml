@@ -16,6 +16,10 @@
         WHERE s.id = #{id};
     </select>
 
+    <select id="findOne" parameterType="int" resultType="mybatis.entity.StudentEntity">
+        select * from student where id = #{id}
+    </select>
+
     <insert id="addStudent" parameterType="mybatis.entity.StudentEntity" useGeneratedKeys="true"
       keyProperty="id">
         INSERT INTO student(name,age) VALUES(#{name}, #{age})
