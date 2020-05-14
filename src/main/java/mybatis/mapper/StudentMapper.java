@@ -1,11 +1,11 @@
 package mybatis.mapper;
 
-import entity.StudentEntity;
+import mybatis.entity.StudentEntity;
 import org.apache.ibatis.annotations.Param;
 
 public interface StudentMapper {
 
-	public StudentEntity getStudentById(int id);
+	public boolean getStudentById(int id);
 
 	public int addStudent(StudentEntity student);
 
