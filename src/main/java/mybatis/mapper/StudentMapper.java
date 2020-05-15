@@ -13,5 +13,5 @@ public interface StudentMapper {
 
 	public StudentEntity getStudentByIdWithClassInfo(int id);
 
-	public StudentEntity findOne(int id);
+	public StudentEntity findOne(Integer id);
 }
