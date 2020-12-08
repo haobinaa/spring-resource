@@ -14,11 +14,12 @@ import org.springframework.context.ApplicationListener;
  */
 public class EmailListener implements ApplicationListener {
 
+    @Override
     public void onApplicationEvent(ApplicationEvent event) {
         if (event instanceof EmailEvent) {
             EmailEvent emailEvent = (EmailEvent) event;
             emailEvent.print();
-            System.out.println("email event email is:"+emailEvent.getSource());
+            System.out.println("email event email is:" + emailEvent.getSource());
         }
     }
 }
