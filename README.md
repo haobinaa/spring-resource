@@ -8,7 +8,7 @@ spring resouce code learn
 - [IOC启动过程分析](https://github.com/haobinaa/spring-resource/blob/master/doc/ioc/ioc.md)
 - [IOC容器中的常用扩展点](./doc/ioc/ioc容器扩展点.md)
 - [spring事件机制-ApplicationEvent](./doc/ioc/spring事件处理与监听.md)
-- [spring事件机制-ApplicationEvent](./doc/ioc/refreshBean.md)
+- [spring LifeCycle](doc/ioc/lifecycle.md)
 - [aop的使用方式(xml、aspectJ、schema)](./doc/aop/aop_sourcecode.md)
 - [aop源码](./doc/aop/aop_sourcecode.md)
 - [jdk动态代理和cglib动态代理](./doc/aop/jdk动态代理和cglib动态代理.md)
