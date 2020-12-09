@@ -38,7 +38,7 @@ private void startBeans(boolean autoStartupOnly) {
 		Map<Integer, LifecycleGroup> phases = new HashMap<>();
         // 遍历所有实现了 Lifecycle 的 bean
 		lifecycleBeans.forEach((beanName, bean) -> {
-		    // 
+		    // 默认autoStartupOnly=true，因此只能筛选出是SmartLifecycle.isAutoStartup()=true的bean
 			if (!autoStartupOnly || (bean instanceof SmartLifecycle && ((SmartLifecycle) bean).isAutoStartup())) {
 				int phase = getPhase(bean);
 				LifecycleGroup group = phases.get(phase);
@@ -60,6 +60,7 @@ private void startBeans(boolean autoStartupOnly) {
 
 // 
 private void doStart(Map<String, ? extends Lifecycle> lifecycleBeans, String beanName, boolean autoStartupOnly) {
+// 移除已经执行过start方法的bean，因为下面依赖原因，避免重复调用
     Lifecycle bean = lifecycleBeans.remove(beanName);
     if (bean != null && bean != this) {
         // 获取这个Bean依赖的其它Bean,在启动时先启动其依赖的Bean
@@ -70,6 +71,7 @@ private void doStart(Map<String, ? extends Lifecycle> lifecycleBeans, String bea
         if (!bean.isRunning() &&
             (!autoStartupOnly || !(bean instanceof SmartLifecycle) || ((SmartLifecycle) bean).isAutoStartup())) {
             try {
+                // 调用 bean 的 start 方法
                 bean.start();
             }
             catch (Throwable ex) {
