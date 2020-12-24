@@ -1,6 +1,6 @@
 ### Spring Lifecycle
 
-Lifecycle接口定义Spring容器的生命周期，任何springbean都可以实现该接口。当ApplicationContext接收启动和停止信号时，spring容器将在容器上下文中找出所有实现了LifeCycle及其子类接口的类，并一一调用它们实现类对应的方法。
+Lifecycle接口定义Spring容器的生命周期，任何 spring bean 都可以实现该接口。当ApplicationContext接收启动和停止信号时，spring容器将在容器上下文中找出所有实现了LifeCycle及其子类接口的类，并一一调用它们实现类对应的方法。
 
 spring 是通过委托给生命周期处理器 `LifecycleProcessor` 来实现这一点的。
 
