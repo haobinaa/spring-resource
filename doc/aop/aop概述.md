@@ -12,25 +12,18 @@
 
 - 属于静态织入，它是通过修改代码来实现的，它的织入时机可以是：
   - Compile-time weaving：编译期织入，如类 A 使用 AspectJ 添加了一个属性，类 B 引用了它，这个场景就需要编译期的时候就进行织入，否则没法编译类 B
-  - Post-compile weaving：也就是已经生成了 .class 文件，或已经打成 jar 包了，这种情况我们需要增强处理的话，就要用到编译后织入
-  - Load-time weaving：指的是在加载类的时候进行织入，要实现这个时期的织入，有几种常见的方法。1、自定义类加载器来干这个，这个应该是最容易想到的办法，在被织入类加载到 JVM 
-  前去对它进行加载，这样就可以在加载的时候定义行为了。2、在 JVM 启动的时候指定 AspectJ 提供的 `agent：-javaagent:xxx/xxx/aspectjweaver.jar`
-- 因为 AspectJ 在实际代码运行前完成了织入，所以大家会说它生成的类是没有额外运行时开销的
-
-#### Spring aop的发展
-
-Spring 延用了 AspectJ 中的概念，包括使用了 AspectJ 提供的 jar 包中的注解，但是不依赖于其实现功能。如 @Aspect、@Pointcut、@Before、@After 等注解都是来自于 AspectJ，但是功能的实现是纯 Spring AOP 自己实现的。
-
-目前 Spring AOP 一共有三种配置方式，Spring 做到了很好地向下兼容：
-- Spring 1.2 基于接口的配置：最早的 Spring AOP 是完全基于几个接口的，源码实现可以从这里起步
-- Spring 2.0 schema-based 配置：Spring 2.0 以后使用 XML 的方式来配置，使用 命名空间 <aop />
-- Spring 2.0 @AspectJ 配置：使用注解的方式来配置，这种方式感觉是最方便的，还有，这里虽然叫做 @AspectJ，但是这个和 AspectJ 其实没啥关系
+  - Post-compile weaving：编译后织入，也就是已经生成了 `.class` 文件，或已经打成 jar 包了，这种情况我们需要增强处理的话，就要用到编译后织入
+  - Load-time weaving：指的是在加载类的时候进行织入，要实现这个时期的织入，有几种常见的方法:
+    1. 自定义类加载器来干这个，这个应该是最容易想到的办法，在被织入类加载到 JVM 前去对它进行加载，这样就可以在加载的时候定义行为了
+    2. 在 JVM 启动的时候指定 AspectJ 提供的 `agent：-javaagent:xxx/xxx/aspectjweaver.jar`
+- AspectJ 在代码运行前已经完成了织入， 所以它生成的类是没有额外开销的
 
 
 ### xml配置aop的使用
 
 #### 普通的advice配置
-定义advice:
+
+定义advice，在方法调用前和调用后进行拦截:
 ``` 
 public class LogArgsAdvice implements MethodBeforeAdvice {
     public void before(Method method, Object[] objects, Object o) throws Throwable {
@@ -44,14 +37,10 @@ public class LogResultAdvice implements AfterReturningAdvice {
     }
 }
 ```
-我们可以在方法调用前和调用后进行拦截
 
-[xml配置](https://github.com/haobinaa/spring-resource/blob/master/src/main/resources/spring_1_2_advice.xml)
-
-我们在代理的bean配置`interceptor`，就可以对指定的bean进行拦截， 被代理的bean所有的方法都会执行我们定义好的advice
-
-代理bean的配置如下:
+我们在代理的bean配置`interceptor`，就可以对指定的bean进行拦截， 被代理的bean所有的方法都会执行我们定义好的advice，代理bean的配置如下:
 ``` 
+ <!-- 代理 bean -->
  <bean id="userServiceProxy" class="org.springframework.aop.framework.ProxyFactoryBean">
     <!--代理的接口-->
     <property name="proxyInterfaces">
@@ -71,48 +60,49 @@ public class LogResultAdvice implements AfterReturningAdvice {
     </property>
   </bean>
 ```
-我们配置好代理接口和实现类，只需要在`interceptorNames`配置上我们的拦截器，可以是advice、advisor、interceptor
+
 #### advisor配置
 
-advice的拦截实现了类级别的拦截，而advisor则是方法级别的拦截，只拦截特定的方法
-
-[xml配置](https://github.com/haobinaa/spring-resource/blob/master/src/main/resources/spring_1_2_advisor.xml)
-
-我们单独看advisor配置:
+advice 的拦截实现了类级别的拦截，而 advisor 则可以是方法级别的拦截，只拦截特定的方法
 ``` 
-  <bean id="logCreateAdvisor" class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor">
+<bean id="logCreateAdvisor" class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor">
+    <!-- advisor 需要指定 advice 来做具体的拦截动作 ->
     <property name="advice" ref="logArgsAdvice" />
+    <!-- 只匹配方法名 createUser -->
     <property name="mappedNames" value="createUser" />
-  </bean>
+</bean>
+
+<bean id="userServiceProxy" class="org.springframework.aop.framework.ProxyFactoryBean">
+    <!--代理的接口-->
+    <property name="proxyInterfaces">
+      <list>
+        <value>aop.service.UserService</value>
+      </list>
+    </property>
+    
+    <!--代理的具体实现-->
+    <property name="target" ref="userServiceImpl"/>
+    
+    <!--配置拦截器，这里可以配置 advice、advisor、interceptor-->
+    <property name="interceptorNames">
+      <list>
+        <value>logCreateAdvisor</value>
+      </list>
+    </property>
+</bean>
 ```
- Advisor部需要指定一个 Advice，Advisor 决定该拦截哪些方法，拦截后需要完成的工作还是内部的 Advice 来做。
+ Advisor 内部需要指定一个 Advice，Advisor 决定该拦截哪些方法，拦截后需要完成的工作还是内部的 Advice 来做。
  
- advisor有好几个实现类，这里我们使用实现类 NameMatchMethodPointcutAdvisor 来演示，从名字上就可以看出来，它需要我们给它提供方法名字，这样符合该配置的方法才会做拦截。
- 
-#### interceptor配置
-
-interceptor 与动态代理很像:
-``` 
-public class DefaultInterceptor implements MethodInterceptor {
-
-    @Override
-    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
-        System.out.println("Before: invocation=[" + methodInvocation + "]");
-        // 执行 真实实现类 的方法
-        Object rval = methodInvocation.proceed();
-        System.out.println("Invocation returned");
-        return rval;
-    }
-}
-```
-
-[xml配置](https://github.com/haobinaa/spring-resource/blob/master/src/main/resources/spring_1_2_interceptor.xml)
+ Advisor 有好几个实现类，上面使用实现类 `NameMatchMethodPointcutAdvisor` 来演示，从名字上就可以看出来，它需要我们给它提供方法名字，这样符合该配置的方法才会做拦截。
 
 #### AutoProxy
 
-在之前的advice配置当中， 我们配置出一个代理的bean使用的是`ProxyFactoryBean`， 这样需要对每一个需要代理的bean都配置一个代理bean。 Spring提供了自动代理，当 Spring 发现一个 bean 需要被切面织入的时候，Spring 会自动生成这个 bean 的一个代理来拦截方法的执行，确保定义的切面能被执行。
+在上面的 advice 配置当中， 我们配置出一个代理的bean使用的是 `ProxyFactoryBean`， 这样需要对每一个需要代理的 bean 都配置一个代理 bean。 
+
+Spring 提供了自动代理，当 Spring 发现一个 bean 需要被切面织入的时候，Spring 会自动生成这个 bean 的一个代理来拦截方法的执行，确保定义的切面能被执行。
 
 ##### BeanNameAutoProxyCreator 
+
 根据bean的名称来决定是否生成Proxy Bean，beanNames 中可以使用正则来匹配 bean 的名字
 
 配置如下:
@@ -124,19 +114,19 @@ public class DefaultInterceptor implements MethodInterceptor {
         <value>logResultAdvice</value>
       </list>
     </property>
-    <!-- 可以通过正则匹配 -->
+    <!-- 可以通过正则匹配 beanName -->
     <property name="beanNames" value="*ServiceImpl" />
   </bean>
 ```
 
-在使用的时候，不在需要根据代理找bean：
+在使用的时候，不在需要根据代理找bean(不需要配置需要代理的 interface )：
 ``` 
 UserService userService = (UserService) context.getBean(UserService.class);
 OrderService orderService = (OrderService) context.getBean(OrderService.class);
 ```
-[完整的xml配置](https://github.com/hongjiev/spring-aop-learning/blob/master/src/main/resources/spring_1_2_BeanNameAutoProxy.xml)
 
 ##### DefaultAdvisorAutoProxyCreator
+
 通过配置 Advisor，精确定位到需要被拦截的方法，然后使用内部的 Advice 执行逻辑处理。之前我们配置advisor的时候是这样配置的:
 ``` 
   <bean id="logCreateAdvisor" class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor">
@@ -148,7 +138,7 @@ Advisor 还有一个更加灵活的实现类 RegexpMethodPointcutAdvisor，它�
 ``` 
 <bean id="logArgsAdvisor" class="org.springframework.aop.support.RegexpMethodPointcutAdvisor">
     <property name="advice" ref="logArgsAdvice" />
-    <property name="pattern" value="com.javadoop.*.service.*.create.*" />
+    <property name="pattern" value="com.haobin.*.service.*.create.*" />
 </bean>
 ```
 之后，我们需要配置 DefaultAdvisorAutoProxyCreator，它会使得所有的 Advisor 自动生效，无须其他配置。
@@ -157,31 +147,11 @@ Advisor 还有一个更加灵活的实现类 RegexpMethodPointcutAdvisor，它�
 ```
 
 ### @AspectJ配置
+
 @AspectJ 和 AspectJ 没多大关系，并不是说基于 AspectJ 实现的，而仅仅是使用了 AspectJ 中的概念，包括使用的注解也是直接来自于 AspectJ 的包。
 
-下面示例如何使用@AspectJ:
-
-#### 引入依赖
-需要依赖 aspectjweaver.jar 这个包，这个包来自于 AspectJ：
-``` 
-<dependency>
-    <groupId>org.aspectj</groupId>
-    <artifactId>aspectjweaver</artifactId>
-    <version>1.8.11</version>
-</dependency>
-```
-
-如果是使用 Spring Boot 的话，添加以下依赖即可：
-```
-<dependency>
-   <groupId>org.springframework.boot</groupId>
-   <artifactId>spring-boot-starter-aop</artifactId>
-</dependency>
-```
-
-之所以要引入 aspectjweaver 并不是因为我们需要使用 AspectJ 的处理功能，而是因为 Spring 使用了 AspectJ 提供的一些注解，实际上还是纯的 Spring AOP 代码
-
 #### 开启@AspectJ
+
 开启 @AspectJ 的注解配置方式，有两种方式：
 - 在 xml 中配置：
 ``` 
@@ -195,58 +165,53 @@ public class AppConfig {
 
 }
 ```
+一旦开启了上面的配置，那么所有使用`@Aspect` 注解的 bean 都会被 Spring 当做用来实现 AOP 的配置类，我们称之为一个 `Aspect`
 
-一旦开启了上面的配置，那么所有使用`@Aspect` 注解的 bean 都会被 Spring 当做用来实现 AOP 的配置类，我们称之为一个 Aspect。
+#### 配置 pointcut 表达式
 
-#### 配置pointcut
-定义切点，用于定义哪些方法需要被增强或者说需要被拦截，有点类似于之前介绍的 Advisor 的方法匹配。
+定义切点，用于定义哪些方法需要被增强或者说需要被拦截, 这里介绍几个常用的
 
-配置方法:
+- execution：一般用于指定方法的执行
+
 ``` 
-// execution指定方法
-@Pointcut("execution(* transfer(..))")// the pointcut expression
-private void anyOldTransfer() {}// the pointcut signature
+execution(modifiers-pattern? ret-type-pattern declaring-type-pattern? 
+	name-pattern(param-pattern) throws-pattern?)
+	
+- modifiers-pattern 表示方法的访问类型, 如 public
+- ret-type-pattern 表示方法的返回值类型
+- declaring-type-pattern 表示方法的声明类
+- name-pattern 表示方法的名称
+- throws-parttern 可以省略
+- * 表示所有
+- .. 表示包以及子包
+
+
+eg:
+1. “execution(* add())”匹配所有的不带参数的add()方法。
+2. “execution(public * com.elim..*.add*(..))”匹配所有com.elim包及其子包下所有类的以add开头的所有public方法。
+3. “execution(* *(..) throws Exception)”匹配所有抛出Exception的方法
 ```
-@Pointcut 中使用了 execution 来正则匹配方法签名, 除了execution，还有几种比较常见的匹配方式:
-- within：指定所在类或所在包下面的方法
+
+- within：指定某些类型的全部方法执行，也可用来指定一个包
 ``` 
-如 @Pointcut("within(aop.springaoplearning.service..*)")
+eg:
+1. “within(com.elim.spring.aop.service.UserServiceImpl)” 匹配UserServiceImpl类对应对象的所有方法外部调用，而且这个对象只能是UserServiceImpl类型，不能是其子类型。
+2. “within(com.elim..*)” 匹配com.elim包及其子包下面所有的类的所有方法的外部调用。
 ```
-- @annotation：方法上具有特定的注解，如 @Subscribe 用于订阅特定的事件
-```
-如 @Pointcut("execution( .*(..)) && @annotation(aop.annotation.Subscribe)")
-```
-- bean(idOrNameOfBean)：匹配 bean 的名字
+
+- @within：@within用于匹配被代理的目标对象对应的类型或其父类型拥有指定的注解的情况，但只有在调用拥有指定注解的类上的方法时才匹配(既只有加了该注解的类才会被代理)
 ``` 
-如 @Pointcut("bean(*Service)")
+eg：
+“@within(com.elim.spring.support.MyAnnotation)” 匹配被调用的方法声明的类上拥有 MyAnnotation 才匹配该 pointcut
 ```
 
-以上匹配中通常` .` 代表一个包名，`..` 代表包及其子包，方法参数任意匹配使用两个点 `..`
-
-更多的关于pointcut使用:[pointcut表达式详细配置](https://elim.iteye.com/blog/2395255)
-
-
-示例定义一个pointcut类, 定义出我们需要的切点
-``` 
-@Aspect
-public class SystemArchitecture {
-
-    @Pointcut("within(aop.service..*)")
-    public void inServiceLayer() {}
-
-    @Pointcut("within(aop.dao..*)")
-    public void inDataAccessLayer() {}
-
-    @Pointcut("execution(* aop.service.*.*(..))")
-    public void businessService() {}
-
-    @Pointcut("execution(* aop.dao.*.*(..))")
-    public void dataAccessOperation() {}
-
-}
+- @annotation：当执行的方法上拥有指定的注解时生效。
+```
+@annotation(com.elim.spring.support.MyAnnotation)”匹配所有的方法上拥有MyAnnotation注解的方法外部调用 
 ```
 
 #### 定义advice
+
 定义好切点之后， 就需要定义advice， 配置需要对这些被拦截的方法做些什么
 
 常用方法示例:
@@ -311,55 +276,9 @@ public class AdviceExample {
 }
 ```
 
-### schema-based配置
 
- Spring 2.0 以后提供的基于 <aop /> 命名空间的 XML 配置。这里说的 schema-based 就是指基于 aop 这个 schema。
- 
- #### 配置AspectJ
- ``` 
- <aop:config>
-     <aop:aspect id="myAspect" ref="aBean">
-         ...
-     </aop:aspect>
- </aop:config>
- 
- <bean id="aBean" class="...">
-     ...
- </bean>
- ```
-所有的配置都在`<aop:config >` 下面。
-
-`<aop:aspect >` 中需要指定一个 bean，和前面介绍的 LogArgsAspect 和 LogResultAspect 一样，该 bean 中包含处理代码。
-
-然后，我们写好 Aspect 代码后，将其“织入”到合适的 Pointcut 中，这就是面向切面。
-
-#### 配置pointcut
-全局的Pointcut
-``` 
-<aop:config>
-
-    <aop:pointcut id="businessService"
-        expression="execution(* aop.service.*.*(..))"/>
-
-    <!--也可以像下面这样-->
-    <aop:pointcut id="businessService2"
-        expression="aop.SystemArchitecture.businessService()"/>
-
-</aop:config>
-```
-也可以给`<aop:aspect />`内部配置 Pointcut，这样该 Pointcut 仅用于该 Aspect：
-``` 
-<aop:config>
-    <aop:aspect ref="logArgsAspect">
-        <aop:pointcut id="internalPointcut"
-                expression="com.javadoop.SystemArchitecture.businessService()" />
-    </aop:aspect>
-</aop:config>
-```
-
-
-[xml配置]()
 ### 参考资料
 - [Spring aop 前世今生](https://javadoop.com/post/spring-aop-intro)
 - [深入分析java web技术内幕]
 - [spring 技术内幕]
+- [pointcut 介绍](https://www.iteye.com/blog/elim-2395255)
