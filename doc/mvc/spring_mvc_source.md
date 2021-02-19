@@ -13,7 +13,7 @@
 (6)(7)处理视图映射并返回模型： DispatcherServlet查询一个或多个ViewResoler视图解析器，找到ModelAndView指定的视图。
 
 (8) Http响应：视图负责将结果显示到客户端。
-
+1
 ### Spring mvc 源码解析
 
 springboot 给我们提供开箱即用的体验， 但也封装了很多细节， 在这里回顾一下Spring mvc的使用流程：
@@ -37,6 +37,7 @@ springboot 给我们提供开箱即用的体验， 但也封装了很多细节�
         <param-value>classpath:config/spring/applicationContext.xml</param-value>
     </context-param>
     <listener>
+        # servlet 规范加载顺序： listener->filter->servlet
         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
     </listener>
     
@@ -582,6 +583,7 @@ protected void detectHandlerMethods(final Object handler) {
  // 调用handler完成过程调用
  mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
  ```
+
 DisPatcherServlet调用HandlerAdapter分为三步:
 ##### 1.调用support()方法判断是否支持改handler的解析
 ``` 
