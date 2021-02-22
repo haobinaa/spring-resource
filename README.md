@@ -30,7 +30,8 @@ spring resouce code learn
 ## spring 实战
 
 ### 设计模式
-- [spring 中使用策略模式](./src/main/java/design_pattern/strategy/SpringStrategyMain.java)
+- [结合spring的策略模式](./src/main/java/design_pattern/strategy/SpringStrategyMain.java)
+- [结合spring的管道模式](./src/main/java/design_pattern/pipeline/SpringPipelineMain.java)
 
 ### 特性实践
 
