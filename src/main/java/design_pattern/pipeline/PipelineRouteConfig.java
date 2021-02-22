@@ -36,7 +36,7 @@ public class PipelineRouteConfig implements ApplicationContextAware {
                         InputDataPreChecker.class,
                         ModelInstanceCreator.class
                 ));
-        // 将来其他 Context 的管道配置
+        // 将来其他 Context 的管道配置， 需要在这里手动添加
     }
 
     /**

@@ -26,6 +26,11 @@ public class PipelineExecutor {
                 List<? extends ContextHandler<? super PipelineContext>>> pipelineRouteMap;
 
 
+    /**
+     * 数据上下文处理， 直到最后一个处理器返回 true 则返回
+     * @param context 数据上下文
+     * @return 有异常就停止
+     */
     public boolean acceptSync(PipelineContext context) {
         Objects.requireNonNull(context, "上下文数据不能为 null");
         // 拿到数据类型
