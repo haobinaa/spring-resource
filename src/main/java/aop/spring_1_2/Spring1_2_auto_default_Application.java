@@ -17,7 +17,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 public class Spring1_2_auto_default_Application {
 
     /**
-     * 自动匹配advisor， 根据正则表达式
+     * DefaultAdvisorAutoProxyCreator 让所有 advisor 生效
      */
     public static void main(String[] args) {
         ApplicationContext context = new ClassPathXmlApplicationContext("classpath:spring_1_2_DefaultAdvisorAutoProxy.xml");

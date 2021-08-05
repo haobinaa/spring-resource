@@ -20,7 +20,7 @@ spring resouce code learn
 - [aop 代理创建过程源码](./doc/aop/aop_sourcecode.md)
 - [jdk动态代理和cglib动态代理](./doc/aop/jdk动态代理和cglib动态代理.md)
 - [aop 原理-核心类和入口分析](./doc/aop/aop%20原理-核心类.md)
-- [aop 原理-核心类和入口分析](./doc/aop/Aop%20拦截器链执行过程.md)
+- [aop 原理-拦截器执行链](./doc/aop/Aop%20拦截器链执行过程.md)
 
 ### MVC 
 

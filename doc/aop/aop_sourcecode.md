@@ -31,7 +31,7 @@ Spring AOP 的原理很简单，就是动态代理，它和 AspectJ 不一样，
     <property name="advice" ref="logResultAdvice" />
     <property name="pattern" value="aop.service.*.query.*" />
   </bean>
-  <!--定义DefaultAdvisorAutoProxyCreator-->
+  <!--定义DefaultAdvisorAutoProxyCreator 让所有 advisor 生效-->
   <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" />
 </beans>
 ```

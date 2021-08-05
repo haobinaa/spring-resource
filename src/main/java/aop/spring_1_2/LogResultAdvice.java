@@ -15,6 +15,6 @@ import org.springframework.aop.AfterReturningAdvice;
 public class LogResultAdvice implements AfterReturningAdvice {
 
     public void afterReturning(Object returnValue, Method method, Object[] objects, Object o1) throws Throwable {
-        System.out.println("[advice]方法返回：" + returnValue);
+        System.out.println("[advice]方法"+ method.getName() +" 返回：" + returnValue);
     }
 }
