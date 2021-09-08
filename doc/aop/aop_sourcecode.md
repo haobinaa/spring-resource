@@ -12,6 +12,7 @@ Spring AOP 的原理很简单，就是动态代理，它和 AspectJ 不一样，
 ``` 
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
+
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.springframework.org/schema/beans
        http://www.springframework.org/schema/beans/spring-beans.xsd">
@@ -39,7 +40,7 @@ Spring AOP 的原理很简单，就是动态代理，它和 AspectJ 不一样，
 看下`DefaultAdvisorAutoProxyCreator`继承结构:
 ![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/DefaultAdvisorAutoProxyCreator.png)
 
-可以看到最顶层的接口是`BeanPostProcessor`， 他的两个方法分别在 init-method 的前后得到执行。
+可以看到最顶层的接口是`BeanPostProcessor`， 他的两个方法分别在 init-method 的前后得到执行。 这里我们就可以猜的出来， aop 是基于 BeanPostProcessor 来实现的了
 ``` 
 public interface BeanPostProcessor {
     Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException;
