@@ -4,6 +4,10 @@ aop 的本质是通过代理模式为目标对象生产代理对象，并将横�
 
 ### 相关术语
 
+- JoinPoint: 执行拦截器的逻辑. JoinPoint->Invocation->MethodInvocation
+- Pointcut: 用来选择 jointPoint， 即在什么地方调用(Class match 或 Method match)
+- Advice： 决定什么时间调用(前置、后置)
+- Advisor: 包装了 advice(advice 只能基于类的粒度去拦截,  advisor 支持更加复杂的方法级别匹配如 methodName， 正则表达式等)
 #### JoinPoint - 连接点
 
 连接点是指程序执行过程中的一些点，比如方法调用，异常处理等。
@@ -35,6 +39,10 @@ public interface MethodInvocation extends Invocation {
     Method getMethod();
 }
 ```
+
+
+继承关系链: JoinPoint -> Invocation -> MethodInvocation
+
 
 #### Pointcut 切点
 
