@@ -2,12 +2,18 @@
 
 aop 的本质是通过代理模式为目标对象生产代理对象，并将横切逻辑插入到目标方法执行的前后。
 
-### 相关术语
+### 面向切面编程相关术语
 
-- JoinPoint: 执行拦截器的逻辑. JoinPoint->Invocation->MethodInvocation
-- Pointcut: 用来选择 jointPoint， 即在什么地方调用(Class match 或 Method match)
-- Advice： 决定什么时间调用(前置、后置)
-- Advisor: 包装了 advice(advice 只能基于类的粒度去拦截,  advisor 支持更加复杂的方法级别匹配如 methodName， 正则表达式等)
+- JoinPoint(运行点): 执行增强逻辑的地方. JoinPoint->Invocation->MethodInvocation
+- Pointcut(切入点): 用来选择 jointPoint， 即在什么地方调用(Class match 或 Method match)
+- Advice(增强)： 想要增强的功能, spring 对 advice 进行了加强封装了 before、after 等
+
+这些概念连起来，意思就是我要在哪里（Pointcut）什么时候（@Before）对谁（JoinPoint）做什么（Advice）
+
+spring 将 Advice和Pointcut两个封装起来了，就叫Advisor。
+
+![](../../images/aop/advisor.png)
+
 #### JoinPoint - 连接点
 
 连接点是指程序执行过程中的一些点，比如方法调用，异常处理等。

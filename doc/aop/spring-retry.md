@@ -37,4 +37,36 @@ public class RetryConfiguration extends AbstractPointcutAdvisor
 	private Pointcut pointcut;
 	.....
 ```
-`RetryConfiguration` 继承于 `AbstractPointcutAdvisor`， 它有一个pointcut和一个advice。
+`RetryConfiguration` 继承于 `AbstractPointcutAdvisor`， 它有一个pointcut和一个advice。继承于`InitializingBean`, 初始化方法如下:
+``` 
+@Override
+public void afterPropertiesSet() throws Exception {
+    retryContextCache = findBean(RetryContextCache.class);
+    methodArgumentsKeyGenerator = findBean(MethodArgumentsKeyGenerator.class);
+    newMethodArgumentsIdentifier = findBean(NewMethodArgumentsIdentifier.class);
+    retryListeners = findBeans(RetryListener.class);
+    sleeper = findBean(Sleeper.class);
+    Set<Class<? extends Annotation>> retryableAnnotationTypes = new LinkedHashSet<Class<? extends Annotation>>(1);
+    retryableAnnotationTypes.add(Retryable.class);
+    this.pointcut = buildPointcut(retryableAnnotationTypes);
+    this.advice = buildAdvice();
+    if (this.advice instanceof BeanFactoryAware) {
+        ((BeanFactoryAware) this.advice).setBeanFactory(beanFactory);
+    }
+}
+
+protected Pointcut buildPointcut(Set<Class<? extends Annotation>> retryAnnotationTypes) {
+    ComposablePointcut result = null;
+    for (Class<? extends Annotation> retryAnnotationType : retryAnnotationTypes) {
+        // 切入点过滤
+        Pointcut filter = new AnnotationClassOrMethodPointcut(retryAnnotationType);
+        if (result == null) {
+            result = new ComposablePointcut(filter);
+        }
+        else {
+            result.union(filter);
+        }
+    }
+    return result;
+}
+```
