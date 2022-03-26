@@ -12,7 +12,7 @@ aop 的本质是通过代理模式为目标对象生产代理对象，并将横�
 
 spring 将 Advice和Pointcut两个封装起来了，就叫Advisor。
 
-![](./images/aop/advisor.png)
+![](https://raw.githubusercontent.com/haobinaa/spring-resource/master/images/aop/advisor.png)
 
 #### JoinPoint - 连接点
 
